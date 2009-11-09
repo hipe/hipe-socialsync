@@ -6,30 +6,39 @@ require "yaml"
 require "getopt/long"
 
 module Markus
+
+  module FileStuff
+    def file_must_exist(fn)
+     unlesss File.exist?( fn )
+      throw new SoftException("file does not exist: "+fn)
+    end
+  end
+
   class Wp2Tumblr
-    attr_accessor :doc, :intermediate_file, :intermediate_filename, :re;
+
+    include FileStuff
+    
+    attr_accessor :doc, :intermediate_file, :intermediate_filename, :re, :num_articles_pushed
+    
+    def initialize
+      @cdataRe = /\A<!\[CDATA\[(.*)\]\]>\Z/m
+      @intermediate_filename = 'tmp.wp2tumblr.yml'      
+    end
     
     def parse_wp_xml(args)
-      self.re = /\A<!\[CDATA\[(.*)\]\]>\Z/m
-      self.intermediate_filename = 'tmp.wp2tumblr.yml'
       fn = args[:input_xml_filename]
       unless (matches = /\.(xml)\Z/.match(fn)) then
         print "Sorry, expecting the file to end in *.xml.  #{fn} is an invalid filename.\n"
         return
       end
-      if ! File.exist?( fn )
-        print "file does not exist: "+fn+"\n"
-        return
-      end
+      file_must_exist fn
       fh = open fn
       print "attempting to parse xml in "+fn+"\n";
-      self.doc = Hpricot.XML(fh)
+      @doc = Hpricot.XML(fh)
       print "parsed.\n"
       self.make_intermediate_file
     end
     
-    attr_accessor :num_articles_pushed
-
     def tumblr_params
       if (!@tumblr_params) 
         @tumblr_params = {
@@ -46,7 +55,7 @@ module Markus
           :type => {
             :required => true,
             :value    => 'regular'
-            #   # regular photo quote link conversation video audio           
+            #   #regular photo quote link conversation video audio           
           },
           :generator => {
             :required => false,
@@ -115,7 +124,7 @@ module Markus
     end
     
     def unCdata(str)
-      matches = self.re.match(str)
+      matches = self.cdataRe.match(str)
       if (! matches) 
         throw Exception.new(self.truncate("failed to match #{str} against #{self.re.to_s}\n",160))
       end
@@ -162,6 +171,7 @@ module Markus
       end
       print "wrote intermediate file \"#{self.intermediate_filename}\"." 
     end
+    
     def push_to_tumblr
       print "implement me: "+(@tumblr_params[:email][:value].to_s)
     end  
@@ -264,20 +274,27 @@ module Markus
       optsGrammar = []
       @options.each do |key,value|
         next unless (value[:value].nil?)
-        optsGrammar.push(['--'+key.to_s, nil, ::Getopt::REQUIRED])
+        arr = ['--'+key.to_s, nil, ::Getopt::REQUIRED] #for now we don't ever have switches just named args
+        optsGrammar.push(arr)
       end
-      opts = Long.getopts(optsGrammar);
+      opts = Long.getopts(*optsGrammar); # splat operator makes an array into a series of arguments
       opts.each do |key,value|
-        print "key: #{key} (#{key.class.to_s}) value:'#{value}'\n"        
-        if (key.nil?)
-          print "getopt sucks - skipping\n"          
-          next
-        end
+        # we won't bother saving the short verion of the options ('e' for 'email')
+        next unless @options[key.to_sym] 
         @options[key.to_sym][:value] = value
       end
     end
   end
   
+  # something we don't expect to go wrong
+  class HardException < Exception
+  end
+  
+  # user input errors
+  class SoftException < Exception
+  end
+  
 end #mod 
 
-Markus::Wp2TumblrCli.new.run
+
+#Markus::Wp2TumblrCli.new.run
