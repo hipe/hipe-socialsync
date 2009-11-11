@@ -1,0 +1,1 @@
+you should be able to run ./wp3tumblr.rb from the command line to get help
