@@ -11,7 +11,7 @@ require 'highline/import'    # for password prompting
 
 module Markus
 
-  class Wp3Tumblr    
+  class BlogMigrator    
 
     include Cli::App
 
@@ -25,7 +25,7 @@ module Markus
       @cli_description = "Import your wordpress blogs into tumblr."
       @cli_commands[:help]        = @@cli_common_commands[:help]
       @cli_global_options[:debug] = @@cli_common_options[:debug]
-      @cli_commands[:parse_wp_xml] = {
+      @cli_commands[:pull] = {
         :description => 'parse wordpress xml into an intermediate yml file.',
         :splat => {
           :name => :XML_IN,
@@ -38,10 +38,27 @@ module Markus
             }
           ],
           # :action => {:action=>:open_hpricot}
+        },
+        :options => {
+          :limit => {
+            :description => "the grabbing phase will stop after it grabs this many items",
+            :validations => [:type=>:regexp, :regexp=>/^\d+$/, :message=>'must be an integer'],
+            :action      => Proc.new{|x| x[0].to_i}
+          },
+          :sort_by => {
+            :description => %q{
+            during the grab phase it will sort the items in this order for the push phase.  
+            Multiple sort-by's may eventually be supported when there are multiple available criteria.  
+            Available criteria are: ("date"). The criteria must be affixed with 'ascending' or 'descending'.  
+            Example: --sort-by="author ascending" --sort-by="date descending"}.gsub(/\n */,''),
+            :validations => [ :type=>:regexp, :regexp=>/^([a-z]+) (ascending|descending)$/, 
+              :message => %[must be of the form "FIELD {ascending|descending}"] ],
+            :action      => Proc.new{ |x| {:field => x[1], :order => x[2] } }
+          }
         }
       }
       datetime = '\d\d(?:\d\d)?-\d\d?-\d\d?(?: \d\d?)?(?::\d\d?){0,2}'
-      @cli_commands[:post_to_tumblr] = {
+      @cli_commands[:push] = {
         :description => "push the intermediate yml file up to tumblr",
         :required_arguments => [
           {:name=>:TUMBLR_ACCOUNT_EMAIL, :description=>'the email address of your tumblr account'}
@@ -55,6 +72,7 @@ module Markus
           }
         }
       } # end command push to tumblr
+      cli_post_init
     end # end initialize
 
     def tumblr_generator_name
@@ -66,7 +84,7 @@ module Markus
       @cli_files[var_name][:fh] = Hpricot(cli_file(var_name)) # overwrite
     end
 
-    def cli_execute_parse_wp_xml
+    def cli_execute_pull
       File.open(@intermediate_filename,'w') do |fh|
         @intermediate_file = fh
         _get_articles
@@ -78,7 +96,7 @@ module Markus
     end
     
     # note that here it sort of kills the point of trying to save on memory
-    def cli_execute_post_to_tumblr
+    def cli_execute_push
       fh = File.open(@intermediate_filename, 'r')
       struct = YAML::load fh
       if (false===struct)
@@ -103,6 +121,9 @@ module Markus
             next
           end
           _push_article_to_tumblr post_data
+          if (@limit && @num_articles_pushed == @limit)
+            puts %{reached limit of #{@limit} items}
+          end
         end
       rescue SocketError => e
         puts %{Got a socket error: "#{e.message}" -- Is your internet on?  Do you *have* the Internet?}
@@ -157,6 +178,14 @@ module Markus
       ]
     end
     
+    def cli_process_option_limit(given_opts, k)
+      @limit = given_opts[k]
+    end
+    
+    def cli_process_option_sort_by(given_opts, k)
+      @sort_by = given_opts[k]
+    end
+    
     # say as little of a sentence as you need to.
     #* ''extraction candidate''
     def minimize template, values
@@ -195,8 +224,10 @@ module Markus
       }
       @intermediate_file.write(":articles:\n");
       filenames = @cli_arguments[:XML_IN] #Dir[@cli_arguments[:XML_IN]]
-      filenames.each do |filename|
-        _get_articles_from_filename filename
+      catch( :limit_reached ) do 
+        filenames.each do |filename|
+          _get_articles_from_xml_file filename
+        end
       end
       print_summary_info      
     end
@@ -207,7 +238,7 @@ module Markus
       print "\n"      
     end
     
-    def _get_articles_from_filename filename
+    def _get_articles_from_xml_file filename
       print( %{\n\n#{'='*20} #{Cli::App.truncate(filename,38)} #{'='*20}\n} )      
       raise CliFailure(%{File must exist: "#{filename}"}) unless File.exist?(filename)
       doc = nil
@@ -241,6 +272,10 @@ module Markus
           s.sub!(/\A--- \n/, ''); # remove this thing from the beginning of the yaml dump..
           s = '- '+s.gsub(/\n(?!\Z)/, "\n  ") # and indent appropriately 
           @intermediate_file.write( s )
+          if (@limit && @summary_info[:grabbed] == @limit)
+            puts %{Reached limit of #{@limit} items.}
+            throw :limit_reached
+          end
         end
       end # each item
     end # def _get_articles  
@@ -305,6 +340,6 @@ module Markus
       end
       return matches[1]
     end # def unescape_cdata
-  end # class Wp3Tumblr
+  end # class BlogMigrator
 end # module Markus
-Markus::Wp3Tumblr.new.cli_run if $PROGRAM_NAME == __FILE__
+Markus::BlogMigrator.new.cli_run if $PROGRAM_NAME == __FILE__
