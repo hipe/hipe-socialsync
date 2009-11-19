@@ -11,6 +11,12 @@ require 'highline/import'    # for password prompting
 
 module Markus
 
+  class BlogMigratorException < Exception
+  end
+  
+  class BlogMigratorFailure < BlogMigratorException
+  end
+  
   class BlogMigrator    
 
     include Cli::App
@@ -22,19 +28,24 @@ module Markus
       cli_pre_init
       @intermediate_filename = 'tmp.wp2tumblr.yml'
       @date_range = nil
-      @cli_description = "Import your wordpress blogs into tumblr."
+      @limit = nil   
+      @is_dry_run = false
+      @sort_by = nil
+      @objects = []
+      @cli_description = %{("blog migrator") Import your wordpress blogs into tumblr.}
       @cli_commands[:help]        = @@cli_common_commands[:help]
       @cli_global_options[:debug] = @@cli_common_options[:debug]
+      @cli_global_options[:help]  = @@cli_common_options[:help]      
       @cli_commands[:pull] = {
         :description => 'parse wordpress xml into an intermediate yml file.',
         :splat => {
           :name => :XML_IN,
           :minimum => 1,
-          :description => 'a file or fileglob name of wordpress XML dump files to take in.',
+          :description => 'a list of one or more wordpress XML dump files to take in.',
           :validations => [
             {:type=>:file_must_exist},
             {:type=>:regexp, :regexp=>/\.xml\Z/,
-             :message=>"Sorry, expecting the file or fileglob to end in *.xml."
+             :message=>"Sorry, expecting the filename to end in *.xml."
             }
           ],
           # :action => {:action=>:open_hpricot}
@@ -42,36 +53,62 @@ module Markus
         :options => {
           :limit => {
             :description => "the grabbing phase will stop after it grabs this many items",
-            :validations => [:type=>:regexp, :regexp=>/^\d+$/, :message=>'must be an integer'],
+            :validations => [:type=>:regexp, :regexp=>/^(\d+)$/, :message=>'must be an integer'],
             :action      => Proc.new{|x| x[0].to_i}
           },
           :sort_by => {
             :description => %q{
             during the grab phase it will sort the items in this order for the push phase.  
             Multiple sort-by's may eventually be supported when there are multiple available criteria.  
-            Available criteria are: ("date"). The criteria must be affixed with 'ascending' or 'descending'.  
-            Example: --sort-by="author ascending" --sort-by="date descending"}.gsub(/\n */,''),
-            :validations => [ :type=>:regexp, :regexp=>/^([a-z]+) (ascending|descending)$/, 
+            Available criteria are: ("post_date"). The criteria must be affixed with 'ascending' or 'descending'.  
+            Example: --sort-by="author ascending" --sort-by="post_date descending"}.gsub(/\n */,''),
+            :validations => [ :type=>:regexp, :regexp=>/^([_a-z]+) (ascending|descending)$/, 
               :message => %[must be of the form "FIELD {ascending|descending}"] ],
-            :action      => Proc.new{ |x| {:field => x[1], :order => x[2] } }
+            :action      => Proc.new{ |x| {:field => x[0], :order => x[1] } }
           }
         }
       }
-      datetime = '\d\d(?:\d\d)?-\d\d?-\d\d?(?: \d\d?)?(?::\d\d?){0,2}'
+      datetime = '\d\d(?:\d\d)?-\d\d?-\d\d?(?: \d\d?:\d\d(?::\d\d)?)?{0,2}'
       @cli_commands[:push] = {
         :description => "push the intermediate yml file up to tumblr",
         :required_arguments => [
           {:name=>:TUMBLR_ACCOUNT_EMAIL, :description=>'the email address of your tumblr account'}
         ],
         :options => {
+          :sleep_every => {
+            :description => %{sleep for n seconds after you push these many items, e.g. --sleep-after="10"},
+            :validations => [{:type=>:regexp, :regexp=>%r{^([1-9]\d*)$},
+                :message=>"must be a positive integer, e.g. --sleep-after='10'"}]
+          
+          },
+          :sleep_for => {
+            :description => %{sleep for this many seconds after n items you push, e.g. --sleep-for="0.123" },
+            :validations => [{:type=>:regexp, :regexp=>%r{^(\d+(?:\.\d+)?)$},
+              :message=>"must be a floating point for seconds e.g. '1' or '0.123'"}]
+          },
           :date_range => {
+            :getopt_letter => 'a',  # don't get in the way of -d for debug
             :description => %{The range of dates of the blogs you want to push, e.g. }+
             %{"--date-range='2010-01-01 10:10 - 2010-02-01 5:55:55'".  (note that the spaces around the middle }+
             %{are important. and a date like "2001-02-03" (with no time) actually means midnight of the previous day.},
-            :validations => [{:type=>:regexp, :regexp=>%r{^(#{datetime}) - (#{datetime})},:message=>"see description"}]
+            :validations => [{:type=>:regexp, :regexp=>%r{^(#{datetime})? - (#{datetime})?$},:message=>"see description"}]
+          },
+          :dry_run => {
+            :getopt_letter => 'r',             # don't get in the way of -d for debug
+            :getopt_type   => Getopt::BOOLEAN, 
+            :description   => %{Don't actually push these up, just show a preview of what you would do.}
           }
         }
-      } # end command push to tumblr
+      } # end command push to tumblr    
+      @cli_commands[:delete] = {
+        :description => "delete items from tumblr by id",
+        :required_arguments => [
+          {:name=>:TUMBLR_ACCOUNT_EMAIL, :description=>'the email address of your tumblr account'},
+          {:name=>:IDS,                  :description=>'a comma-separated list of ids to erase'} 
+        ]
+      } # end command push to tumblr      
+      @cli_commands[:push][:options][:limit] = @cli_commands[:pull][:options][:limit].clone
+      @cli_commands[:push][:options][:limit][:description] = "it will only push this many items."
       cli_post_init
     end # end initialize
 
@@ -85,46 +122,24 @@ module Markus
     end
 
     def cli_execute_pull
-      File.open(@intermediate_filename,'w') do |fh|
-        @intermediate_file = fh
-        _get_articles
-      end
-    end
-    
-    def _describe_date_range
+      get_items
+      post_process_items
+      print_summary_info      
+    end                                
+        
+    def describe_date_range
       "between "+@date_rangep[0]+" and "+@date_range[1]
     end
     
     # note that here it sort of kills the point of trying to save on memory
-    def cli_execute_push
-      fh = File.open(@intermediate_filename, 'r')
-      struct = YAML::load fh
-      if (false===struct)
-        raise CliFailure(%{failed to parse "@intermediate_filename" as YAML!})
-      end
-      question = "Please enter your tumblr account password for #{@cli_arguments[:TUMBLR_ACCOUNT_EMAIL]}: ";
-      # @password = ask(question) { |q| q.echo = '*' }      
-      puts %{Entered your password already here #{File.basename(__FILE__)} #{__LINE__}}
-      @password = 'mmmmmmmm'
-      @num_articles_pushed = 0      
-      begin     
-        struct[:articles].each do |article|
-          if (@date_range)
-            article_datetime = DateTime.parse(article[:post_date])
-            if article_datetime < @date_range[0] || article_datetime > @date_range[1]
-              next        
-            end
-          end
-          post_data = _make_post_data article
-          if post_data[:body].empty?
-            puts %{skipping article with empty body from #{post_data[:date]} ...}
-            next
-          end
-          _push_article_to_tumblr post_data
-          if (@limit && @num_articles_pushed == @limit)
-            puts %{reached limit of #{@limit} items}
-          end
-        end
+    def cli_execute_push                                   
+      prompt_for_password                   
+      struct = false
+      File.open(@intermediate_filename, 'r') { |fh| struct = YAML::load fh }
+      raise BlogMigratorException.new(%{failed to parse "@intermediate_filename" as YAML!}) if false===struct
+      @num_articles_pushed = 0
+      begin
+        catch( :limit_reached ){ struct[:articles].each { |article| consider_item article } }
       rescue SocketError => e
         puts %{Got a socket error: "#{e.message}" -- Is your internet on?  Do you *have* the Internet?}
         exit
@@ -145,7 +160,38 @@ module Markus
       puts "done pushing #{@num_articles_pushed} articles to tumblr."            
     end
     
-    def _make_post_data article
+    def consider_item article
+      if (@date_range)
+        article_datetime = DateTime.parse(article[:post_date])     
+        if (@date_range[0] && article_datetime < @date_range[0] )
+          print '[too old]'; return
+        end
+        if (@date_range[1] && article_datetime > @date_range[1] )
+          print '[too new]'; return
+        end
+      end   
+      post_data = make_post_data article    
+      # ppp :thing, post_data, 1
+      if post_data[:body].empty?
+        puts %{skipping article with empty body from #{post_data[:date]} ...}
+        return
+      end
+      push_item_to_tumblr post_data     
+      
+      if (@limit && @num_articles_pushed >= @limit)
+        puts %{Reached limit of #{@limit} items}
+        throw :limit_reached            
+      end
+      
+      ## try adding sleep to avoid timeout
+      if (@sleep_every && ( @num_articles_pushed % @sleep_every == 0 ) )
+        puts %{After pushing #{@sleep_every} items, will sleep for #{@sleep_for} seconds}
+        sleep @sleep_for
+      end
+
+    end      
+    
+    def make_post_data article
       @post_data = {
         :title =>       article[:title],
         :body =>        article[:content],
@@ -155,27 +201,84 @@ module Markus
         :generator =>   tumblr_generator_name,
         :date =>        article[:post_date],
         :private =>     0,
-        #:tags =>        '"test tag 1","testTag2","tag3"',
+        :tags =>        article[:tags],
         :format =>      'html'  # html | markdown        
       }
     end
     
-    def _push_article_to_tumblr post_data
+    def push_item_to_tumblr post_data
       # http://www.tumblr.com/docs/api#api_write
       @post_date_str = post_data[:date]      
       print %{attempting to post article from #{@post_date_str} ...}
       @last_url = 'http://www.tumblr.com/api/write'
-      resp = RestClient.post(@last_url, post_data) #throws on fail
+      if (@is_dry_run)
+        print "(dry run)" 
+        sleep 0.5
+      else
+        resp = RestClient.post(@last_url, post_data) #throws on fail        
+        print %{(tublr id: "#{resp}")}
+      end
       @num_articles_pushed += 1
       print "..done.\n"
+    end
+                         
+    def prompt_for_password
+      question = "Please enter your tumblr account password for #{@cli_arguments[:TUMBLR_ACCOUNT_EMAIL]}: ";
+      @password = ask(question) { |q| q.echo = '*' }      
+      # puts %{HARDCODED PASSWORD BEING ENTERED HERE!!! #{File.basename(__FILE__)} #{__LINE__}}
+      # @password = 'mmmmmmmm'
+    end
+    
+    def cli_execute_delete
+      prompt_for_password
+      ids = @cli_arguments[:IDS].split ','
+      ids.each do |id|     
+        raise BlogMigratorException.new(%{invalid id for item to delete: "#{id}"}) unless /^\d+$/ =~ id        
+        args = {      
+          %s{post-id}  => id,
+          :email       => @cli_arguments[:TUMBLR_ACCOUNT_EMAIL],
+          :password    => @password
+        }
+        @last_url =   'http://www.tumblr.com/api/delete'
+        begin     
+          print %{attempting to delete #{id}...}
+          resp = RestClient.post(@last_url, args)
+        rescue RestClient::RequestFailed => e
+          if (403==e.http_code)
+            print "request failed (code 403) -- already deleted?"
+          else
+            print %{unexpected failure:  "e.message"}
+          end
+        else
+          print %{tumblr says:"#{resp}"}
+        end
+        print "\n"        
+      end
     end
     
     def cli_process_option_date_range(given_opts, k)
       md = given_opts[k]
       @date_range = [
-        DateTime.parse(md[1]),
-        DateTime.parse(md[2])
+        md[0].nil? ? nil : DateTime.parse(md[0]),
+        md[1].nil? ? nil : DateTime.parse(md[1])
       ]
+      if (@date_range[0].nil? && @date_range[1].nil?)
+        raise BlogMigratorException.new("Failed to process date range from "+md.inspect)
+      end
+    end
+    
+    def cli_process_option_dry_run(given_opts, k)      
+      @is_dry_run = true
+    end                 
+    
+    def cli_process_option_sleep_every(given_opts, k)
+      @sleep_every = given_opts[k][0].to_i
+      @sleep_for ||= 3.0
+    end
+
+    def cli_process_option_sleep_for(given_opts, k)   
+      @sleep_for = given_opts[k][0].to_f
+      @sleep_every ||= 5
     end
     
     def cli_process_option_limit(given_opts, k)
@@ -214,7 +317,7 @@ module Markus
       ret
     end
     
-    def _get_articles
+    def get_items
       @summary_info = {
         :skipped => {
           :because_of_status => {},
@@ -222,14 +325,12 @@ module Markus
         :grabbed => 0,
         :number_of_files => 0
       }
-      @intermediate_file.write(":articles:\n");
       filenames = @cli_arguments[:XML_IN] #Dir[@cli_arguments[:XML_IN]]
       catch( :limit_reached ) do 
         filenames.each do |filename|
           _get_articles_from_xml_file filename
         end
       end
-      print_summary_info      
     end
     
     def print_summary_info
@@ -240,7 +341,7 @@ module Markus
     
     def _get_articles_from_xml_file filename
       print( %{\n\n#{'='*20} #{Cli::App.truncate(filename,38)} #{'='*20}\n} )      
-      raise CliFailure(%{File must exist: "#{filename}"}) unless File.exist?(filename)
+      raise Cli::SyntaxError.new(%{File must exist: "#{filename}"}) unless File.exist?(filename)
       doc = nil
       begin
         # doc = Hpricot(filename)       
@@ -266,19 +367,48 @@ module Markus
           @summary_info[:skipped][:because_of_no_content] += 1
         else
           print minimize(%{\nGrabbing article #%%#%%},'#' => obj[:art_id])
-          @summary_info[:grabbed] += 1          
-          yaml_obj = YAML::dump obj
-          s = yaml_obj.to_s # in order to take this yaml dump and put it inside of another yaml tree...
-          s.sub!(/\A--- \n/, ''); # remove this thing from the beginning of the yaml dump..
-          s = '- '+s.gsub(/\n(?!\Z)/, "\n  ") # and indent appropriately 
-          @intermediate_file.write( s )
-          if (@limit && @summary_info[:grabbed] == @limit)
-            puts %{Reached limit of #{@limit} items.}
+          @summary_info[:grabbed] += 1
+          hold_item obj
+          if (@limit && @summary_info[:grabbed] >= @limit)
+            puts %{\nReached limit of #{@limit} items.}
             throw :limit_reached
           end
         end
       end # each item
-    end # def _get_articles  
+    end # def get_items  
+    
+    # here's the spot where we might change this if we switch to sqlite
+    def hold_item obj
+      @objects << obj
+    end
+    
+    def post_process_items
+      if (@sort_by)
+        raise BlogMigratorException.new(%{Sorry, we don't recognize the sort-by field "%{@sort_by[:field]}"}) unless 
+          (@sort_by.instance_of?(Hash) && 'post_date' == @sort_by[:field])
+
+        symbol = @sort_by[:field].to_sym
+        if ('ascending'==@sort_by[:order])
+          sorter = Proc.new{|x,y| DateTime.parse(x[symbol]) <=> DateTime.parse(y[symbol]) }
+        else 
+          sorter = Proc.new{|x,y| DateTime.parse(y[symbol]) <=> DateTime.parse(x[symbol]) }
+        end
+        @objects.sort!( &sorter )
+        puts %{Sorted items by date #{@sort_by[:order]}}
+      end
+
+      File.open(@intermediate_filename,'w') do |fh|
+        fh.write(":articles:\n");        
+        @objects.each do |object|
+          yaml_obj = YAML::dump object
+          s = yaml_obj.to_s # in order to take this yaml dump and put it inside of another yaml tree...
+          s.sub!(/\A--- \n/, ''); # remove this thing from the beginning of the yaml dump..
+          s = '- '+s.gsub(/\n(?!\Z)/, "\n  ") # and indent appropriately 
+          fh.write s         
+        end
+      end
+      
+    end # post_process_items
     
     def nokogiri_get_item_info(node)
       obj = {}

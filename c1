@@ -1,3 +1,2 @@
 #!/bin/sh
-# wp3tumblr.rb parse-wp-xml bridgerunners.wordpress.2009-11-02.xml
-./wp3tumblr.rb parse-wp-xml -dddddddd *.xml > summary.log
+ bm pull -ddddddd --limit=1000 --sort-by='post_date descending' *.xml
