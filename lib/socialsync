@@ -1,15 +1,15 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
-require File.dirname(__FILE__)+'/markus/cli'
-require File.dirname(__FILE__)+'/markus/structdiff'
+require File.dirname(__FILE__)+'/Hipe/cli'
+require File.dirname(__FILE__)+'/Hipe/structdiff'
 #require 'hpricot'            # may be not being used anymore. old way to parse xml 
 require 'nokogiri'           # for parsing responses from xml data from blog services
 require 'yaml'               # for representing the intermediate data file
 require 'rest_client'        # for pushing to blog services
 require 'highline/import'    # for password prompting
 
-module Markus
+module Hipe
 
   class BlogMigratorException < Exception
   end
@@ -471,5 +471,5 @@ module Markus
       return matches[1]
     end # def unescape_cdata
   end # class BlogMigrator
-end # module Markus
-Markus::BlogMigrator.new.cli_run if $PROGRAM_NAME == __FILE__
+end # module Hipe
+Hipe::BlogMigrator.new.cli_run if $PROGRAM_NAME == __FILE__

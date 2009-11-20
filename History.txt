@@ -1,0 +1,2 @@
+== 0.0.0 / 2009-11-19
+* broken off from "blog migrator" cli 

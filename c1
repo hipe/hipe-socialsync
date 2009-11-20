@@ -1,2 +1,0 @@
-#!/bin/sh
- bm pull -ddddddd --limit=1000 --sort-by='post_date descending' *.xml
