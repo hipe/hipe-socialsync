@@ -3,29 +3,27 @@ module GemHelpers
 
   def generate_gemspec
     $LOAD_PATH.unshift(File.expand_path(File.join(File.dirname(__FILE__), "lib")))
-    require "cli"
+    require 'hipe-socialsync'
     
     Gem::Specification.new do |s|    
       s.name      = 'hipe-socialsync'
-      s.version   = Hipe::Cli::VERSION
+      s.version   = Hipe::SocialSync::VERSION
       s.required_rubygems_version = Gem::Requirement.new("> 1.3.1") if s.respond_to? :required_rubygems_version=
       s.author    = "Mark Meves"
       s.email     = "mark.meves@gmail.com"
       s.homepage  = "http://github.com/hipe/hipe-socialsync"
       s.date      = %q{2009-11-19}  
-      s.summary   = %q{Getopt plus validations and help screen generation}  
+      s.summary   = %q{wordpress to tumblr} 
+      s.executables = ['socsync']
       s.description  = <<-EOS.strip
-      hipe-socialsync is an experimental command-line "framework" that aides
-      in parsing commands and options and displaying and formatting
-      help screens, etc.
+      hipe-socialsync is wordpress to tumblr for now
       EOS
-      # s.rubyforge_project = "webrat"
 
       require "git"
       repo = Git.open(".")
 
       s.files      = normalize_files(repo.ls_files.keys - repo.lib.ignored_files)
-      s.test_files = normalize_files(Dir['spec/**/*.rb'] - repo.lib.ignored_files)
+      s.test_files = normalize_files(Dir['test/**/*.rb'] - repo.lib.ignored_files)
 
       s.has_rdoc = false  #*
       #s.extra_rdoc_files = %w[README.rdoc MIT-LICENSE.txt History.txt]
