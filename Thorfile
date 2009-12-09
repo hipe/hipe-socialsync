@@ -14,7 +14,7 @@ module GemHelpers
       s.homepage  = "http://github.com/hipe/hipe-socialsync"
       s.date      = %q{2009-11-19}  
       s.summary   = %q{wordpress to tumblr} 
-      s.executables = ['socsync']
+      s.executables = ['sosy']
       s.description  = <<-EOS.strip
       hipe-socialsync is wordpress to tumblr for now
       EOS

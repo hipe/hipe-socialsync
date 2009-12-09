@@ -4,16 +4,20 @@ require 'ruby-debug'
 require 'hipe-core'
 require 'hipe-core/asciitypesetting'
 require 'hipe-cli'
+
+module Hipe::SocialSync
+  DIR = File.expand_path(File.dirname(__FILE__)+'/../')    
+  class Exception < Hipe::Exception; end  
+end    
 require 'hipe-socialsync/model'
 
 module Hipe
   module SocialSync
     
     VERSION = '0.0.2'
-    DIR = File.expand_path(File.dirname(__FILE__)+'/../')    
+
 
     module Plugins; end # forward-declare it in case their end up being zero plugins or we change the logic it    
-    class Exception < Hipe::HipeException; end
     class Cli
       include Hipe::Cli::App     
       def self.run
@@ -35,7 +39,9 @@ module Hipe
         end
         plugin_infos.each do |info|
           begin
-            const = Plugins.const_get info[:class_name]
+            cn = info[:class_name]
+            cn <<'s' unless Plugins.constants.include? cn
+            const = Plugins.const_get cn
           rescue NameError => e
             raise Exception::factory(%{couldn't find plugin "#{info[:name]}" }+
               %{in file "#{info[:file_name]}" -- #{e.message}}, :type=>:plugin_not_found)
