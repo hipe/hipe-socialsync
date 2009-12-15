@@ -3,4 +3,4 @@
 
 require File.dirname(__FILE__) + "/../lib/hipe-socialsync"
 
-Hipe::SocialSync::Cli.run
+puts Hipe::SocialSync::App.new.cli.run(ARGV) if File.basename(__FILE__) == File.basename($PROGRAM_NAME)

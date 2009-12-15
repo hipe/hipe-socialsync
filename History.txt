@@ -1,3 +1,5 @@
+== 0.0.3 is: 2009-10-15 
+  * rewrite to work with post 0.0.2 hipe-cli
 == 0.0.2 after hipe-cli overhaul
 == 0.0.1 whatevs
 == 0.0.0 / 2009-11-19

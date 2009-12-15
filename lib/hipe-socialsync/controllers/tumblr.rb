@@ -7,57 +7,42 @@ require 'pp'
 
 module Hipe::SocialSync::Plugins
   class Tumblr
-    include Hipe::Cli::App
+    include Hipe::Cli
     DATETIME_RE = '\d\d(?:\d\d)?-\d\d?-\d\d?(?: \d\d?:\d\d(?::\d\d)?)?{0,2}'
-    cli.does :push, {
-      :description => "push the intermediate yml file up to tumblr",
-      :required => [
-        { :name => :YML_IN,
-          :description => "the intermediate yml file.",
-          :it => [:must_exist, :gets_opened]
-        },
-        { :name=>:EMAIL,
-          :description=>'the email address of your tumblr account'
-        }
-      ],
-      :options => {
-        :sleep_every => {
-          :description => %{sleep for n seconds after you push these many items, e.g. --sleep-every="10"},
-          :range=>(0..1000)
-        },
-        :sleep_for => {
-          :description => %{sleep for this many seconds after n items you push, e.g. --sleep-for="0.123" },
-          :range =>(0..1000)
-        },
-        '-r --date-range' => {
-          :description => %{The range of dates of the blogs you want to push, e.g. }+
-          %{"--date-range='2010-01-01 10:10 - 2010-02-01 5:55:55'".  (note that the spaces around the middle }+
-          %{are important. and a date like "2001-02-03" (with no time) actually means midnight of the previous day.},
-          :regexp=>%r{^(#{DATETIME_RE})? - (#{DATETIME_RE})?$},
-          :regexp_sentence=>"See description for correct dange ranges"
-        },
-        :dry => {
-          :type => :boolean,
-          :description   => %{Don't actually push these up, just show a preview of what you would do.}
-        },
-        :limit => {
-          :description => "only push this many",
-          :range => (0...1000)
-        }
+    cli.does('push',"push the intermediate yml file up to tumblr"){
+      option('--sleep-every SEC',  %{sleep for n seconds after you push these many items, e.g.}+
+                                   %{ --sleep-every="10"}){
+        it.must_be_integer.must_be_in_range(0..1000)
       }
-    } # end command push
+      
+      option('--sleep-for SEC',%{sleep for this many seconds after n items you push, }
+                               %{e.g. --sleep-for="0.123" },
+        it.must_be_in_range(0..1000)
+      }
+      
+      
+      option('-r','--date-range RANGE', %{The range of dates of the blogs you want to push, e.g. }+
+          %{"--date-range='2010-01-01 10:10 - 2010-02-01 5:55:55'".  (note that the spaces around the middle }+
+          %{are important. and a date like "2001-02-03" (with no time) actually means midnight of the previous day.}) {
+        it.must_match_regexp(%r{^(#{DATETIME_RE})? - (#{DATETIME_RE})?$}),"See description for correct dange ranges")
+      }
+      option('--dry', %{Don't actually push these up, just show a preview of what you would do.})
+      option('--limit LIMIT',"only push this many", :default=>2){
+        it.must_be_integer.must_be_in_range(0..1000)
+      }      
+      required('email','the email address of your tumblr account'){
+        it.must_look_like_email
+      }
+    }
 
-    def push yml_file, email, opts
-      @dry = opts[:dry]
-      @limit = opts[:limit]
-      @sleep_for = opts[:sleep_for]
-      @sleep_every = opts[:sleep_every]
+    def push email, opts
+      @opts = opts
       @num_pushed = 0
       @password = prompt_for_password      
-      @date_range = DateRange[opts[:date_range]]
-      raise Exception.factory("Failed to parse intermediate yaml file") unless yml = YAML::load(yml_file[:fh])
+      @date_range = DateRange[opts.date_range]
       begin
         catch(:limit_reached) do
+          
           yml[:articles].each do |article|
             maybe_push article
           end

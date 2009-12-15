@@ -11,12 +11,21 @@ module Hipe::SocialSync::Model
 
   class Base; end
 
-  Excepto = Hipe::SocialSync::Exception
+  E = Hipe::SocialSync::Exception
 
   module BaseClassMethods
     include DataMapper::Types
     def self.extended(mod)
       mod.property :id, Serial      
+    end
+    def first! *args
+      unless(ret = first(*args))
+        raise E.factory(%{can't find #{human_name} from #{args.inspect}},:type=>:expected_entity_missing)
+      end
+      ret
+    end
+    def human_name
+      self.to_s.match(/[^:]+$/)[0].gsub(/([a-z])([A-Z])/,'\1 \2').downcase
     end
   end
 
@@ -42,7 +51,7 @@ module Hipe::SocialSync::Model
     extend BaseClassMethods    
     # details should be a hash of zero or more objects whose keys represent the named roles
     def self.kreate event_type, details
-      raise Excepto.factory("must be non zero length string") unless event_type.to_s.length > 0
+      raise E.factory("must be non zero length string") unless event_type.to_s.length > 0
       obj = self.new :type => event_type.to_s, :happened_at => DateTime.now
       obj.save
       details.each do |role,obj2|
@@ -59,8 +68,8 @@ module Hipe::SocialSync::Model
     def self.kreate email, admin
       email.strip!
       existing = self.first(:email => email)
-      raies Excepto.factory(%{need an admin}) unless admin.instance_of? User
-      raise Excepto.factory(%{user "#{email}" already exists}) if existing
+      raise E.factory(%{need an admin}) unless admin.instance_of? User
+      raise E.factory(%{user "#{email}" already exists}) if existing
       obj = self.create :email => email
       Event.kreate :user_created, :user => obj, :by => admin
     end
@@ -74,8 +83,8 @@ module Hipe::SocialSync::Model
     property :name, String
     def self.kreate name, user
       existing = self.first(:name=>name)
-      raise Excepto.factory("who is the user adding this service?") unless user.instance_of? User
-      raise Excepto.factory(%{Service "#{name}" already exists.}) if existing
+      raise E.factory(%{I need to know the user adding this service. I had "#{user.inspect}"}) unless user.instance_of? User
+      raise E.factory(%{Service "#{name}" already exists.}) if existing
       obj = self.create(:name=>name)
       Event.kreate :service_created, :service=>obj, :by=>user
     end
