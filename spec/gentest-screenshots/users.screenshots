@@ -1,0 +1,92 @@
+# This is a gentest file for use with hipe-cli gentest.
+#
+# 
+
+{
+"prompt":"~/d > ",
+"desc":"primordial tests",
+"klass":"Hipe::SocialSync::App",
+"requires":["hipe-socialsync"],
+"run_with":"app",
+"chomp":true
+}
+
+# bad plugin name
+~/d > sosy db:rotate
+Unrecognized plugin "db". Known plugins are "accounts", "item", "services", "users" and "wp"
+
+# move database.
+~/d > sosy db-rotate -c
+moved dev.db to backup file.
+
+# list from beginning
+~/d > sosy users:list
+1               admin@admin
+(1 users)
+
+# add with missing parameters
+~/d > sosy users:add
+There are two missing required arguments: email and admin_email
+See "sosy users:add -h" for more info.
+
+~/d > sosy users:add -h
+users:add - add a user to the list
+
+Usage: sosy users:add [-h] email admin_email
+    -h
+        email                        any ol' name you want, not an existing name
+        admin_email                  the person acting as the admin
+
+# extra argument
+~/d > sosy users:add blah blah blah
+there is one unexpected argument: "blah": 
+See "sosy users:add -h" for more info.
+
+# bad admin email
+~/d > sosy users:add blah blah
+Can't find user with email "blah".
+
+# bad email format
+~/d > sosy users:add blah admin@admin
+"blah" is not a valid email address.
+
+# add user
+~/d > sosy users:add mark@mark admin@admin
+Created user "mark@mark". Now there are 2 users.
+
+# list users
+~/d > sosy users:list
+1               admin@admin
+2                 mark@mark
+(2 users)
+
+# add again
+~/d > sosy users:add mark2@mark admin@admin
+Created user "mark2@mark". Now there are 3 users.
+
+# add with already used name
+~/d > sosy users:add mark@mark admin@admin
+There is already a user "mark@mark".
+
+# delete with missing args
+~/d > sosy users:delete
+There are two missing required arguments: email and admin
+See "sosy users:delete -h" for more info.
+
+# delete -h
+~/d > sosy users:delete -h
+users:delete - delete user accounts
+
+Usage: sosy users:delete [-h] email admin
+    -h
+        email
+        admin
+        
+# delete with too many arguments
+~/d > sosy users:delete blah blah blah
+there is one unexpected argument: "blah": 
+See "sosy users:delete -h" for more info.
+
+# delete user
+~/d > sosy users:delete mark2@mark admin@admin
+Deleted user "mark2@mark" (#3).

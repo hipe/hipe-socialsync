@@ -1,5 +1,7 @@
 == 0.0.4 is the version you are working on now
+  * spec for users
   * come up with testing strategy
+  * get hipe-core and hipe-cli caught up
 == 0.0.3 is: 2009-10-15 
   * rewrite to work with post 0.0.2 hipe-cli
 == 0.0.2 after hipe-cli overhaul

@@ -1,5 +1,6 @@
 require 'dm-core'
 require 'dm-validations'
+require 'dm-aggregates'
 require 'md5'
 require 'hipe-core/infrastructure/erroneous'
 
@@ -10,31 +11,55 @@ end
 module Hipe::SocialSync::Model
 
   class ValidationError
-    attr_accessor :details    
+    attr_accessor :details, :message
     def initialize(msg,details)
-      @msg = msg
+      @message = msg
       @details = details
+    end
+    def message
+      if (@message)
+        @message
+      elsif (@details[:object])
+        @details[:object].errors.map.flatten * '  '
+      else
+        @details.inspect
+      end
     end
   end
   
-  class ValidationErrors
-    include Hipe::Erroneous
-    def self.[](*args)
-      if (String===args[0] && (args.size==0 or args.size==1 && Hash===args[1]))
+  module ValidationErrorsClassMethods
+    def [](*args)
+      if (String===args[0] && (args.size==1 or args.size==2 && Hash===args[1]))
         ret = self.new
         ret.errors << ValidationError.new(args[0],args[1])
-      elsif (1==args.size and Common===args[0])
-        raise ArgumentError.new("object must be invalid") if args[0].valid? 
-        errors = args[0].errors
-        ret = self.new        
-        errors.keys.each do |key|
-          ret.errors << ValidationError.new(errors[key], :field_name => key)          
-        end
+      elsif (1==args.size and CommonDataObject===args[0])
+        object = args[0]        
+        raise ArgumentError.new("object must be invalid") if object.valid? 
+        ret = self.new                
+        ret.errors << ValidationError.new(nil, :object => object)
       else
-        raise ArgumentError.new("bad signature")
+        raise ArgumentError.new("bad signature: #{args.map{|x| x.class} * ', '}")
       end
       ret
     end
+  end
+  
+  module ValidationErrorsInstanceMethods
+    def to_s
+      errors.map{|x| x.message} * '  '
+    end
+  end    
+  
+  class ValidationErrors
+    include Hipe::Erroneous    
+    extend ValidationErrorsClassMethods
+    include ValidationErrorsInstanceMethods
+  end
+  
+  class ValidationErrorsException < ::Exception
+    include Hipe::Erroneous    
+    extend ValidationErrorsClassMethods
+    include ValidationErrorsInstanceMethods
   end
 
   module Inflector
@@ -42,33 +67,30 @@ module Hipe::SocialSync::Model
       str.to_s.match(/[^:]+$/)[0].gsub(/([a-z])([A-Z])/,'\1 \2').downcase
     end    
     def self.class_basename(cls)
-      cls.match(/([^:]*)$/).captures[0]      
+      cls.to_s.match(/([^:]*)$/).captures[0]      
     end
   end
   
-  module Common
+  module CommonDataObject
     include DataMapper::Types
     def self.included(model)
-      model.extend ClassMethods
+      model.extend CommonDataObjectClassMethods
       model.property :id, Serial
     end
   end
 
-  module ClassMethods
+  module CommonDataObjectClassMethods
     def human_name
       Inflector.humanize(self.to_s)
     end    
     def class_basename
       Inflector.class_basename(self.to_s)
     end    
-    def soft(obj)
-      Hipe::SocialSync::SoftException[{:object => obj}]
-    end
     def create_or_throw *args
-      debugger
       obj = self.new(args[0])
       throw :invalid, ValidationErrors[obj] unless obj.valid?
-      obj.save
+      raise ValidationErrorsException[obj] unless obj.save
+      obj
     end
     def first_or_throw *args
       ret = nil
@@ -92,7 +114,7 @@ module Hipe::SocialSync::Model
       msg = if (value.nil?)
         %{#{name} not found.}.capitalize
       else
-        %{#{name} should be #{should_be} but was #{Inflector.class_basename(value)}}
+        %{#{name} should be #{should_be} but was #{Inflector.class_basename(value.class)}}
       end      
       throw :invalid, ValidationErrors[msg]
     end                                                                                  
@@ -100,34 +122,32 @@ module Hipe::SocialSync::Model
 
   class Relationship
     include DataMapper::Resource
-    include Common    
-    property :type, String, :length => (4..40)
+    include CommonDataObject    
+    property :type, String, :length => (2..40)
     property :left_class, String, :length => (2..50)
     property :left_id, Integer, :required => true
     property :right_class, String, :length => (2..50)
     property :right_id, Integer, :required => true
     
-
     def self.kreate left, type, right
-      kind_of_or_throw :left, left, Common
-      kind_of_or_throw :left, right, Common      
-      kind_of_or_throw :type, type, Symbol
+      assert_kind_of :left, left, CommonDataObject
+      assert_kind_of :left, right, CommonDataObject      
+      assert_kind_of :type, type, Symbol
       
       obj = self.new  :left_class  => left.class.to_s,  :right_class => right.class.to_s,
                       :left_id     => left.id,          :right_id    => right.id,
                       :type        => type.to_s
-      throw :invalid, ValidationErrors[obj] unless obj.valid? 
+      raise ValidationErrorsException[obj] unless obj.valid? 
       obj.save
     end
   end
 
   class Event
     include DataMapper::Resource
-    include Common    
+    include CommonDataObject    
     property :type, String, :length => (2..20)
     property :happened_at, DateTime, :required => true
 
-    # details should be a hash of zero or more objects whose keys represent the named roles
     def self.kreate event_type, details
       obj = self.new :type => event_type.to_s, :happened_at => DateTime.now
       throw :invalid, ValidationErrors[obj] unless obj.valid?
@@ -141,12 +161,12 @@ module Hipe::SocialSync::Model
 
   class User
     include DataMapper::Resource
-    include Common    
+    include CommonDataObject    
 
     property :email, String, :length=>(1..80), :format => :email_address, :unique => true,
       :messages => {
         :format    => lambda{|res, prop| '"%s" is not a valid email address.'.t(prop)  },
-        :is_unique => lambda{|res, prop| 'There is already a service "%s".'.t(res.send(prop.name))}    
+        :is_unique => lambda{|res, prop| 'There is already a %s "%s".'.t(res.class.human_name,res.send(prop.name))}    
       } 
     property :encrypted_password, String          
     # validates_format :email, :format=> :email_address, :message => 'blahblah' #@TODO uncomment & see bug
@@ -156,25 +176,22 @@ module Hipe::SocialSync::Model
       email.strip!
       kind_of_or_throw :admin, admin, User
       obj = self.create_or_throw(:email => email)
-      debugger
-      obj.save
       Event.kreate :user_created, :user => obj, :by => admin
       obj
     end    
     
     def self.remove(target_user_email, current_user_email)      
-      ret = catch(:invalid)
       current_user = User.first_or_throw(:email => current_user_email)
       target_user = User.first_or_throw(:email => target_user_email)    
       Event.kreate :user_deleted, :user => target_user, :by => current_user
       target_user.destroy!
-      %{Deleted user "#{target_user.email}" (##{id}).}
+      %{Deleted user "#{target_user.email}" (##{target_user.id}).}
     end
   end
 
  #class Service
  #  include DataMapper::Resource
- #  include Common
+ #  include CommonDataObject
  #  
  #  property :name, String, :length=>(2..20)
  #  has n, :accounts
@@ -201,7 +218,7 @@ module Hipe::SocialSync::Model
  #
  #class Account
  #  include DataMapper::Resource
- #  include Common
+ #  include CommonDataObject
  #  
  #  belongs_to :user
  #  belongs_to :service
@@ -218,7 +235,7 @@ module Hipe::SocialSync::Model
  #
  #class Item
  #  include DataMapper::Resource
- #  include Common
+ #  include CommonDataObject
  #  
  #  belongs_to :account
  #  property :foreign_id, Integer, :required => true
@@ -266,7 +283,7 @@ module Hipe::SocialSync::Model
  #
  #class UploadedFile
  #  include DataMapper::Resource
- #  include Common    
+ #  include CommonDataObject    
  #end
  #
 
@@ -282,9 +299,17 @@ module Hipe::SocialSync::Model
     Event.auto_migrate!
   end
   
+ # we were trying to cheat 
+ #if repo.storage_exists?('users') && User.count == 0
+ #  require 'dm-migrations'
+ #  mig = DataMapper::Migration.new(1,:drop_users_table){ down{ drop_table :users } }
+ #  mig.create_migration_info_table_if_needed    
+ #  mig.perform_down
+ #end
+ #
   unless repo.storage_exists?('users')
-    User.auto_migrate!
-    User.create_or_throw(:email=>'admin')
+    User.auto_migrate!    
+    User.create_or_throw(:email=>'admin@admin')
   end  
   #
   #unless repo.storage_exists?('services')

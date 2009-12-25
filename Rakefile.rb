@@ -1,7 +1,20 @@
-# require 'spec' thanks webrat
-require 'spec/rake/spectask'
+# This file is copy-pasted into other gems (and versioned there) but this here is the official version
+# which officially lives in github.com/hipe/hipe-core..etc.  This is a list of the other projects
+# that use this file, when you change it here make sure it doesn't break there
+#  - hipe-cli
+#  - hipe-sosy
+
+# require 'spec/rake/spectask'
 require 'rcov/rcovtask'
 require 'ruby-debug'
+
+RakefileConfig = {
+  :spec => {
+    :bacon => {
+      :patterns => ['spec/**/spec_*.rb'] # this is a subset of the pattern supported by the "bacon -a" command
+    }
+  }
+}
 
 # desc "Run API and Core specs -- lose this. we are using bacon now"
 # Spec::Rake::SpecTask.new do |t|
@@ -17,7 +30,7 @@ task :whitespace do
 end
 
 Rcov::RcovTask.new do |t|
-  t.test_files = FileList['spec/spec_*.rb']
+  t.test_files = FileList[RakefileConfig[:spec][:bacon][:patterns][0]]
   t.verbose = true     # uncomment to see the executed command
   t.rcov_opts = ['--exclude', 'spec,/Library/Ruby/Gems/1.8/gems']
 end
@@ -30,11 +43,7 @@ task :bacon do
   require 'scanf'
   require 'matrix'
 
-  PROJECT_SPECS = FileList[
-    'spec/spec_*.rb'
-  ]
-
-  specs = PROJECT_SPECS
+  specs = FileList[RakefileConfig[:spec][:bacon][:pattern]]
 
   some_failed = false
   specs_size = specs.size

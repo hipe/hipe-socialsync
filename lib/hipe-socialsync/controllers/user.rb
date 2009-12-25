@@ -12,7 +12,7 @@ module Hipe::SocialSync::Plugins
     }
     def add email, admin_email, opts    
       out = cli.out.new
-      admin = User.first!(:email=>admin_email)
+      admin = User.first_or_throw(:email=>admin_email)
       response = User.kreate email, admin
       out.puts %{Created user "#{email}". Now there are #{User.count} users.}
       out
