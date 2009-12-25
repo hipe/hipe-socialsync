@@ -18,10 +18,6 @@ Usage: sosy services:add [-h] name current_user_email
     -h
         name                         any ol' name you want, not an existing name
         current_user_email           the email of the person adding this service
-~/d > sosy services:add wordpress admin@admin
-Created service "wordpress".  Now there is one service.
-~/d > sosy services:add tumblr admin@admin
-Created service "tumblr".  Now there are two services.
 ~/d > sosy services:add eraseme admin@admin
 Created service "eraseme".  Now there are three services.
 ~/d > sosy services:list 

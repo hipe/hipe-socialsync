@@ -211,7 +211,6 @@ module Hipe::SocialSync::Model
       target.destroy!
       %{Deleted service "#{target.name}" (##{target.id}).}
     end    
-    
   end
   
   class Account
@@ -220,7 +219,7 @@ module Hipe::SocialSync::Model
     
     belongs_to :user
     belongs_to :service
-    property :name_credential, String, :length => (0..20)
+    property :name_credential, String, :length => (1..20)
     
     def self.kreate(service_name, name_credential, user_obj)
       assert_kind_of :user, user_obj, User      
@@ -246,61 +245,66 @@ module Hipe::SocialSync::Model
     end 
   end
   
- #
- #class Item
- #  include DataMapper::Resource
- #  include CommonDataObject
- #  
- #  belongs_to :account
- #  property :foreign_id, Integer, :required => true
- #  property :author, String, :length => (2..20)
- #  property :content, Text, :required => true
- #  property :content_md5, String, :length => (32)
- #  property :keywords, Text
- #  property :published_at, DateTime, :required => true
- #  property :status, String
- #  property :title, String, :length => (1..80)
- #  validates_is_unique :content_md5, :scope => :account_id, 
- #    :message => lambda{|res,prop| %{md5 "%s" is already taken}.t(res.send(prop.name))}
- #  validates_is_unique :content, :scope => :account_id, 
- #    :message => lambda { |res,prop| 
- #      %{Another blog entry (#%s) from %s already has that content}.t(
- #        res.foreign_id, res.published_at.strftime('%Y-%m-%d')
- #      )
- #    }
- #
- #  
- #  def self.kreate(account_obj, foreign_id, author_str, content, keywords_str, published_at, status, title, curr_user_o)
- #    published_at = to_time_or_throw published_at      
- #    kind_of_or_throw :user, current_user_obj, User
- #    kind_of_or_throw 'date/time', published_at, DateTime
- #    kind_of_or_throw :account, account_obj, Account
- #    kind_of_or_throw :keywords, keywords, String
- #    md5 = MD5.new(content).to_s  
- #    unique! md5, :content_md5    
- #    obj = self.create(
- #      :account        => account_obj,         
- #      :foreign_id     => foreign_id,
- #      :author         => author_str,
- #      :content        => content_str,
- #      :content_md5    => md5,
- #      :keywords       => keywords,
- #      :published_at   => published_at,
- #      :status         => status,
- #      :title          => title
- #    )
- #    raise soft(obj) unless obj.valid?
- #    Event.kreate(:item_imported, :item=>obj, :account=>account_obj, :by => current_user_obj)
- #    obj
- #  end
- #end
- #
- #class UploadedFile
- #  include DataMapper::Resource
- #  include CommonDataObject    
- #end
- #
-
+  
+  class Item
+    include DataMapper::Resource
+    include CommonDataObject
+    
+    belongs_to :account
+    property :foreign_id, Integer, :required => true
+    property :author, String, :length => (2..20)
+    property :content, Text, :required => true
+    property :content_md5, String, :length => (32)
+    property :keywords, Text
+    property :published_at, DateTime, :required => true
+    property :status, String
+    property :title, String, :length => (1..80)
+    validates_is_unique :content_md5, :scope => :account_id, 
+      :message => lambda{|res,prop| %{md5 "%s" is already taken.}.t(res.send(prop.name))}
+    validates_is_unique :content, :scope => :account_id, 
+      :message => lambda { |res,prop| 
+        %{Another blog entry (#%s) from %s already has that content}.t(
+          res.foreign_id, res.published_at.strftime('%Y-%m-%d')
+        )
+      }
+    validates_is_unique :foreign_id, :scope => :account_id,
+      :message => lambda { |o,prop| 
+        %{You already have another %s blog entry in the "%s" account with that foreign id (#%s).}.t(
+          o.account.service.name, o.account.name_credential, o.send(prop.name)
+        )
+      }
+    
+    def self.kreate(account_obj, foreign_id, author_str, content_str, 
+         keywords_str, published_at, status, title, current_user_obj)
+      published_at = to_time_or_throw published_at      
+      kind_of_or_throw :user, current_user_obj, User
+      kind_of_or_throw 'date/time', published_at, DateTime
+      kind_of_or_throw :account, account_obj, Account
+      kind_of_or_throw :keywords, keywords_str, String
+      md5 = MD5.new(content_str).to_s  
+      obj = self.create(
+        :account        => account_obj,         
+        :foreign_id     => foreign_id,
+        :author         => author_str,
+        :content        => content_str,
+        :content_md5    => md5,
+        :keywords       => keywords,
+        :published_at   => published_at,
+        :status         => status,
+        :title          => title
+      )
+      obj.save or throw :invalid, ValidationErrors[obj]
+      Event.kreate(:item_imported, :item=>obj, :account=>account_obj, :by=>current_user_obj)
+      obj
+    end
+  end
+  
+  #class UploadedFile
+  #  include DataMapper::Resource
+  #  include CommonDataObject    
+  #end
+  
+  
   ################## build the database ############################
 
   repo = DataMapper.repository
@@ -328,14 +332,15 @@ module Hipe::SocialSync::Model
   
   unless repo.storage_exists?('services')
     Service.auto_migrate!
-    #Service.create(:name => 'wordpress')
+    Service.create(:name => 'wordpress')
+    Service.create(:name => 'tumblr')    
   end
   
   unless repo.storage_exists?('accounts')
     Account.auto_migrate!
   end  
   
-  #unless repo.storage_exists?('items')
-  #  Item.auto_migrate!
-  #end
+  unless repo.storage_exists?('items')
+    Item.auto_migrate!
+  end
 end # module Hipe::SocialSync
