@@ -26,29 +26,7 @@ module Hipe
       end
       def valid?; false end
     end
-   #class SoftException < Exception
-   #  alias_method :orig_to_s, :to_s
-   #  def to_s
-   #    msg = orig_to_s
-   #    if (['',nil,self.class.to_s].include?(msg) and @details[:object])
-   #      msg =  (@details[:object].errors.map.flatten.join('  '))
-   #    end
-   #    msg
-   #  end                
-   #end
-   #
-   ## Should the user see the message from the exception? 
-   #KindOfRe = %r{^\+([^\+]+)\+ should be Hipe::SocialSync::Model::([^,]+), but was (.+)}
-   #Gracefuls = Hipe::RulesLite.new do
-   #  rule( "SoftExceptions can be shown to the user"){
-   #    condition  { SoftException === e }
-   #    consequence{ e }
-   #  }
-   #  rule( "type assertion failures can be shown to user" ){
-   #    condition   { ArgumentError === e && (response.md = KindOfRe.match(e.message)) }
-   #    consequence { SoftException[%{#{response.md[1]} #{response.md[2].downcase} not found}] }
-   #  }
-   #end
+    # soft exception and graceful list last seeen in 30db43a9797bd11e41c2616aaefc956e730f7149
     class App
       include Hipe::Cli
       cli.program_name = 'sosy' # necessary b/c when running it from bacon, its name became 'bacon'
@@ -108,6 +86,23 @@ module Hipe
           result = Exception.upgrade(e)
         end
         Hipe::Io::GoldenHammer[result]
+      end
+    end
+    class GoldenHammer < Hipe::Io::GoldenHammer
+      def to_s
+        if (data.common_template)
+          send(%{#{data.common_template}_template})
+        else
+          super
+        end
+      end
+      def list_template
+        s = Hipe::Io::BufferString.new
+        data.list.each do |item|
+          s.puts( data.row.call(item) * '' )
+        end
+        s.puts %{#{data.klass.count} #{Extlib::Inflection.pluralize(data.klass.human_name)}}
+        s
       end
     end
   end

@@ -169,7 +169,6 @@ module Hipe::SocialSync::Model
         :is_unique => lambda{|res, prop| 'There is already a %s "%s".'.t(res.class.human_name,res.send(prop.name))}    
       } 
     property :encrypted_password, String          
-    # validates_format :email, :format=> :email_address, :message => 'blahblah' #@TODO uncomment & see bug
     #has n, :accounts
     
     def self.kreate email, admin
@@ -188,33 +187,32 @@ module Hipe::SocialSync::Model
       %{Deleted user "#{target_user.email}" (##{target_user.id}).}
     end
   end
+  
+  class Service
+    include DataMapper::Resource
+    include CommonDataObject
 
- #class Service
- #  include DataMapper::Resource
- #  include CommonDataObject
- #  
- #  property :name, String, :length=>(2..20)
- #  has n, :accounts
- #  validates_is_unique :name, 
- #    :message => lambda{|res,prop| 'There is already a service "%s".'.t(res.send(prop.name))}    
- #  
- #  #def self.kreate name, user_obj
- #  #  kind_of_or_throw :user, user_obj, User
- #  #  obj = self.create(:name=>name)
- #  #  raise soft(obj) unless obj.valid?
- #  #  Event.kreate :service_created, :service=>obj, :by=>user
- #  #  obj
- #  #end
- #  #
- #  #def self.remove(target_name, current_user_email)      
- #  #  current_user = User.first_or_throw(:email => current_user_email)
- #  #  target = Service.first_or_throw(:name => target_name)      
- #  #  Event.kreate :service_deleted, :service => target, :by => current_user
- #  #  id = target.id; target.destroy!
- #  #  %{Deleted service "#{target_name}" (##{id}).}
- #  #end    
- #  
- #end
+    #has n, :accounts    
+    property :name, String, :length=>(2..20), :unique => true, 
+      :messages => {
+        :is_unique => lambda{|res, prop| 'There is already a %s "%s".'.t(res.class.human_name,res.send(prop.name))}    
+      }    
+    def self.kreate name, user_obj
+      assert_kind_of :user, user_obj, User
+      obj = self.create_or_throw(:name => name)
+      Event.kreate :service_created, :service=>obj, :by=>user_obj
+      obj
+    end
+
+    def self.remove(target_name, user_obj)
+      assert_kind_of :user, user_obj, User
+      target = Service.first_or_throw(:name => target_name)      
+      Event.kreate :service_deleted, :service=>target, :by=>user_obj
+      target.destroy!
+      %{Deleted service "#{target.name}" (##{target.id}).}
+    end    
+    
+  end
  #
  #class Account
  #  include DataMapper::Resource
@@ -311,12 +309,12 @@ module Hipe::SocialSync::Model
     User.auto_migrate!    
     User.create_or_throw(:email=>'admin@admin')
   end  
-  #
-  #unless repo.storage_exists?('services')
-  #  Service.auto_migrate!
-  #  #Service.create(:name => 'wordpress')
-  #end
-  #
+  
+  unless repo.storage_exists?('services')
+    Service.auto_migrate!
+    #Service.create(:name => 'wordpress')
+  end
+  
   #unless repo.storage_exists?('accounts')
   #  Account.auto_migrate!
   #end  

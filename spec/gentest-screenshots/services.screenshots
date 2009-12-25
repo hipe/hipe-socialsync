@@ -1,27 +1,36 @@
+# This is a gentest file for use with hipe-cli gentest.
+{
+"prompt":"~/d > ",
+"desc":"primordial tests",
+"klass":"Hipe::SocialSync::App",
+"requires":["hipe-socialsync"],
+"run_with":"app",
+"chomp":true
+}
 
-# add service
-~/d > sosy services:add wordpress m@m.com
-Service "wordpress" already exists.
-See "sosy services:add -h" for more info.
+~/d > sosy db-rotate -c
+moved dev.db to backup file.
+~/d > sosy services:add -h
+services:add - add a service to the list
 
-# add service wrong user
-~/d > sosy services:add wordpressz meh@m.com
-can't find user from [{:email=>"meh@m.com"}]({:type=>:expected_entity_missing})
-See "sosy services:add -h" for more info.
-
-# add service
-~/d > sosy services:add wordpressz m@m.com
-created service "wordpressz". Now there are 3 services.
-
-# list svcs
-~/d > sosy services:list
-2                    tumblr
-1                 wordpress
-3                wordpressz
-(3 services)
-
-# list users
-~/d > sosy users:list
-1                     admin
-2                   m@m.com
-(2 users)
+Usage: sosy services:add [-h] name current_user_email
+    -h
+        name                         any ol' name you want, not an existing name
+        current_user_email           the email of the person adding this service
+~/d > sosy services:add wordpress admin@admin
+Created service "wordpress".  Now there is one service.
+~/d > sosy services:add tumblr admin@admin
+Created service "tumblr".  Now there are two services.
+~/d > sosy services:add eraseme admin@admin
+Created service "eraseme".  Now there are three services.
+~/d > sosy services:list 
+3                 eraseme
+2                  tumblr
+1               wordpress
+3 services
+~/d > sosy services:delete notthere admin@admin
+Can't find service with name "notthere".
+~/d > sosy services:delete eraseme no@user
+Can't find user with email "no@user".
+~/d > sosy services:delete eraseme admin@admin
+Deleted service "eraseme" (#3).
