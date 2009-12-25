@@ -145,7 +145,7 @@ module Hipe::SocialSync::Model
   class Event
     include DataMapper::Resource
     include CommonDataObject    
-    property :type, String, :length => (2..20)
+    property :type, String, :length => (2..60)
     property :happened_at, DateTime, :required => true
 
     def self.kreate event_type, details
@@ -192,7 +192,7 @@ module Hipe::SocialSync::Model
     include DataMapper::Resource
     include CommonDataObject
 
-    #has n, :accounts    
+    has n, :accounts    
     property :name, String, :length=>(2..20), :unique => true, 
       :messages => {
         :is_unique => lambda{|res, prop| 'There is already a %s "%s".'.t(res.class.human_name,res.send(prop.name))}    
@@ -213,23 +213,39 @@ module Hipe::SocialSync::Model
     end    
     
   end
- #
- #class Account
- #  include DataMapper::Resource
- #  include CommonDataObject
- #  
- #  belongs_to :user
- #  belongs_to :service
- #  property :name_credential, String, :length => (0..20)
- #  def self.kreate(service_name, name_credential, user_name)
- #    user_obj = User.first_or_throw(:email=>user_name)
- #    service_obj = Service.first_or_throw(:name=>service_name)
- #    obj = self.create(:user => user_obj, :service => service_obj, :name_credential => name_credential)
- #    raise soft(obj) unless obj.valid?
- #    Event.kreate :account_added, :account => obj, :by => user_obj      
- #    obj
- #  end
- #end
+  
+  class Account
+    include DataMapper::Resource
+    include CommonDataObject
+    
+    belongs_to :user
+    belongs_to :service
+    property :name_credential, String, :length => (0..20)
+    
+    def self.kreate(service_name, name_credential, user_obj)
+      assert_kind_of :user, user_obj, User      
+      service_obj = Service.first_or_throw(:name=>service_name)
+      conditions = {:user=>user_obj, :service=>service_obj, :name_credential=>name_credential}
+      obj = self.first_or_new(conditions, conditions)
+      unless (obj.new?)
+        msg = %{#{self.human_name} already exists for #{obj.service.name} with username "#{name_credential}"}
+        throw :invalid, ValidationErrors[msg]
+      end
+      obj.save or throw :invalid, ValidationErrors[obj]
+      Event.kreate :service_account_added, :account => obj, :by => user_obj      
+      obj
+    end
+
+    def self.remove(service_name, name_credential, user_obj)
+      assert_kind_of :user, user_obj, User
+      svc = Service.first_or_throw(:name => service_name)
+      acct = self.first_or_throw(:service=>svc, :name_credential=>name_credential, :user=>user_obj)      
+      acct.destroy!
+      Event.kreate :service_account_deleted, :account=>acct, :by=>user_obj      
+      %{Removed record of #{svc.name} account for "#{name_credential}".}
+    end 
+  end
+  
  #
  #class Item
  #  include DataMapper::Resource
@@ -315,10 +331,10 @@ module Hipe::SocialSync::Model
     #Service.create(:name => 'wordpress')
   end
   
-  #unless repo.storage_exists?('accounts')
-  #  Account.auto_migrate!
-  #end  
-  #
+  unless repo.storage_exists?('accounts')
+    Account.auto_migrate!
+  end  
+  
   #unless repo.storage_exists?('items')
   #  Item.auto_migrate!
   #end

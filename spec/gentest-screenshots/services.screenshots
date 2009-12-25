@@ -5,7 +5,8 @@
 "klass":"Hipe::SocialSync::App",
 "requires":["hipe-socialsync"],
 "run_with":"app",
-"chomp":true
+"chomp":true,
+"letter":"s"
 }
 
 ~/d > sosy db-rotate -c

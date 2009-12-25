@@ -1,0 +1,56 @@
+# This is a gentest file for use with hipe-cli gentest.
+{
+"prompt":"~/d > ",
+"desc":"primordial tests",
+"klass":"Hipe::SocialSync::App",
+"requires":["hipe-socialsync"],
+"run_with":"app",
+"chomp":true,
+"letter":"a"
+}
+
+~/d > sosy db-rotate -c
+moved dev.db to backup file.
+
+
+~/d > sosy accounts:list -h
+accounts:list - show all accounts
+
+Usage: sosy accounts:list [-h] current_user_email
+    -h
+        current_user_email           the email of the current user
+        
+
+
+~/d > sosy accounts:list 
+There is one missing required argument: current_user_email
+See "sosy accounts:list -h" for more info.
+
+
+~/d > sosy accounts:list  admin@admin
+0 accounts
+
+
+~/d > sosy accounts:add wordpress admin@admin imauser
+Can't find service with name "wordpress".
+
+~/d > sosy services:add wordpress admin@admin
+Created service "wordpress".  Now there is one service.
+
+~/d > sosy accounts:add wordpress admin@admin imauser
+Added wordpress account of "imauser".
+
+~/d > sosy accounts:add wordpress admin@admin imauser2
+Added wordpress account of "imauser2".
+
+~/d > sosy accounts:list admin@admin
+2               wordpress            imauser2
+1               wordpress             imauser
+2 accounts
+
+~/d > sosy accounts:delete wordpress imauser2 admin@admin
+Removed record of wordpress account for "imauser2".
+
+~/d > sosy accounts:add wordpress admin@admin imauser
+account already exists for wordpress with username "imauser"
+        

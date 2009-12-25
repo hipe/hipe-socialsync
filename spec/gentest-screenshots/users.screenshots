@@ -8,7 +8,8 @@
 "klass":"Hipe::SocialSync::App",
 "requires":["hipe-socialsync"],
 "run_with":"app",
-"chomp":true
+"chomp":true,
+"letter":"u"
 }
 
 # bad plugin name

@@ -3,7 +3,7 @@ require 'hipe-socialsync'
 
 
 # You may not want to edit this file.  It was generated from data in "users.screenshots"
-# by hipe-cli gentest on 2009-12-25 04:15.
+# by hipe-cli gentest on 2009-12-25 06:25.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -15,7 +15,7 @@ require 'hipe-socialsync'
 
 describe "Generated test (generated tests)" do
 
-  it "# bad plugin name (gt-0)" do
+  it "# bad plugin name (u-0)" do
     @app = Hipe::SocialSync::App.new 
     x = @app.run(["db:rotate"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
@@ -23,8 +23,17 @@ describe "Generated test (generated tests)" do
     __HERE__
     x.to_s.chomp.should.equal y
   end
-
-  it "# move database. (gt-1)" do
+  
+  it "# bad plugin name (u-0.5)" do
+    @app = Hipe::SocialSync::App.new 
+    x = @app.run(["db:rotate"])
+    y =<<-__HERE__.gsub(/^    /,'').chomp
+    Unrecognized plugin "db". Known plugins are "accounts", "item", "services", "users" and "wp"
+    __HERE__
+    x.to_s.chomp.should.equal y
+  end
+  
+  it "# move database. (u-1)" do
     x = @app.run(["db-rotate", "-c"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     moved dev.db to backup file.
@@ -32,7 +41,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# list from beginning (gt-2)" do
+  it "# list from beginning (u-2)" do
     x = @app.run(["users:list"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     1               admin@admin
@@ -41,7 +50,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# add with missing parameters (gt-3)" do
+  it "# add with missing parameters (u-3)" do
     x = @app.run(["users:add"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     There are two missing required arguments: email and admin_email
@@ -50,7 +59,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "should work (gt-4)" do
+  it "sosy users:add -h (u-4)" do
     x = @app.run(["users:add", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     users:add - add a user to the list
@@ -63,7 +72,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# extra argument (gt-5)" do
+  it "# extra argument (u-5)" do
     x = @app.run(["users:add", "blah", "blah", "blah"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     there is one unexpected argument: "blah": 
@@ -72,7 +81,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# bad admin email (gt-6)" do
+  it "# bad admin email (u-6)" do
     x = @app.run(["users:add", "blah", "blah"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     Can't find user with email "blah".
@@ -80,7 +89,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# bad email format (gt-7)" do
+  it "# bad email format (u-7)" do
     x = @app.run(["users:add", "blah", "admin@admin"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     "blah" is not a valid email address.
@@ -88,7 +97,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# add user (gt-8)" do
+  it "# add user (u-8)" do
     x = @app.run(["users:add", "mark@mark", "admin@admin"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     Created user "mark@mark". Now there are 2 users.
@@ -96,7 +105,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# list users (gt-9)" do
+  it "# list users (u-9)" do
     x = @app.run(["users:list"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     1               admin@admin
@@ -106,7 +115,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# add again (gt-10)" do
+  it "# add again (u-10)" do
     x = @app.run(["users:add", "mark2@mark", "admin@admin"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     Created user "mark2@mark". Now there are 3 users.
@@ -114,7 +123,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# add with already used name (gt-11)" do
+  it "# add with already used name (u-11)" do
     x = @app.run(["users:add", "mark@mark", "admin@admin"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     There is already a user "mark@mark".
@@ -122,7 +131,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# delete with missing args (gt-12)" do
+  it "# delete with missing args (u-12)" do
     x = @app.run(["users:delete"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     There are two missing required arguments: email and admin
@@ -131,7 +140,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# delete -h (gt-13)" do
+  it "# delete -h (u-13)" do
     x = @app.run(["users:delete", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     users:delete - delete user accounts
@@ -144,7 +153,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# delete with too many arguments (gt-14)" do
+  it "# delete with too many arguments (u-14)" do
     x = @app.run(["users:delete", "blah", "blah", "blah"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     there is one unexpected argument: "blah": 
@@ -153,7 +162,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# delete user (gt-15)" do
+  it "# delete user (u-15)" do
     x = @app.run(["users:delete", "mark2@mark", "admin@admin"])
     y = "Deleted user \"mark2@mark\" (#3)."
     x.to_s.chomp.should.equal y
