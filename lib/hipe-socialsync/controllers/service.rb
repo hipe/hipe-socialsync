@@ -2,34 +2,43 @@ module Hipe::SocialSync::Plugins
   class Services
     include Hipe::Cli
     include Hipe::SocialSync::Model
-    cli.out = :golden_hammer
-    
-    cli.does '-h --help', 'display help for services'  
+    cli.out.class = Hipe::Io::GoldenHammer
+    cli.default_command = 'help'
+    cli.does '-h','--help'
     cli.does(:add, "add a service to the list"){
-      option('-h',&help)      
+      option('-h',&help)
       required(:name,"any ol' name you want, not an existing name")
-      required(:email,"")
+      required(:email,"the email of the person adding this service")
     }
-    def add(name, email,opts)
+    def add(name, email,opts) 
+      out = cli.out.new     
       user = User.first!(:email=>email)
       Service.kreate name, user
-      cli.out.puts %{created service "#{name}". Now there are #{Service.count} services.}
+      out.puts %{created service "#{name}". Now there are #{Service.count} services.}
+      out
     end
-    
-    cli.does :list, "show all services"
-    def list(*args)
-      all = Service.all :order => [:name.asc]
-      all.each{|x| @out.puts sprintf('%-5d  %20s', x.id, x.email)}
-      cli.out.puts %{(#{Service.count} services)}
+
+    cli.does(:list, "show all services"){
+      option('-h',&help)
+    }
+    def list(opts)
+      out = cli.out.new
+      out.data.services = Service.all( :order => [:name.asc] )
+      out.data.services.each do |svc|
+        out.puts sprintf('%-5d  %20s', svc.id, svc.name)
+      end
+      out.puts %{(#{Service.count} services)}
+      out
     end
-    
+
     cli.does(:delete, "remove the service."){
       option('-h',&help)
-      required(:name, 'name of service to delete')
+      required(:name, 'name of service to delete')      
+      required('current-user-email', 'who are you')
     }
-    def delete name
-      cli.out.puts "not implemented!"      
+    def delete(name, user, opts)
+      cli.out.new.puts(Service.remove(name, user))      
     end
   end
 end
-  
+

@@ -1,95 +1,110 @@
 #!/usr/bin/env ruby
 require 'rubygems'
 require 'ruby-debug'
-require 'ostruct'
 require 'hipe-cli'
-require 'hipe-core'
-require 'hipe-core/io/buffer-string'
-require 'hipe-core/exception-like'
+require 'hipe-core/infrastructure/exception-like'
+require 'hipe-core/struct/open-struct-extended'
+require 'hipe-core/logic/rules-lite'
+require 'dm-core'
+require 'dm-aggregates'
 
 module Hipe
   module SocialSync
     VERSION = '0.0.3'
-    DIR = File.expand_path('../..',__FILE__)       
-    module Plugins; end  
+    DIR = File.expand_path('../..',__FILE__)
+    module Plugins; end
+    module ExceptionUpgrade
+      def valid?; false end
+    end
     class Exception < Hipe::Exception
-      include Hipe::ExceptionLike  
+      include Hipe::ExceptionLike
       self.modules = [Hipe::SocialSync]
-      class << self
-        alias_method :f, :factory
+      def self.upgrade(exception)
+        return if exception.respond_to? :valid?
+        exception.extend ExceptionUpgrage
+        exception
       end
-    end    
-  end
-  class Exception  
-    include Hipe::ExceptionLike
-    class << self
-      alias_method :f, :factory
+      def valid?; false end
     end
-  end
-  require 'hipe-socialsync/model'  
-  module Experimental
-    module CliClassExtensions
-      def class_in_file! filename, container_module
-        mod = container_module
-        require filename
-        raise Exception.f(%{filenames with classes must be lowcase and dashes, not "#{filename}"},
-          :type => :bad_plugin_filename) unless md = %r{/([-a-z]+)\.rb$}.match(filename)
-        class_name_singular = md[1].gsub(/(?:^|-)[a-z]/){|x| x.upcase}        
-        class_names = [class_name_singular, %{#{class_name_singular}s}]
-        class_name = class_names.detect { |class_name| mod.constants.include?(class_name) }
-        return mod.const_get(class_name) if class_name
-        raise Exception.f(%{couldn't find class "#{class_name_singular}(s)" in #{filename}},
-          :type=>:plugin_not_found)
-      end
-      def load_plugins_from_dir(full_path,container_module)
-        skip_file = (File.join full_path, 'ignore-list')
-        skip_list = File.exist?(skip_file) ? File.read(skip_file).split("\n") : []
-        files = Dir[File.join full_path, '*.rb']
-        raise Exception.f(%{no plugins in directory: "#{full_path}"}) unless files.size > 0
-        files.each do |filename|
-          next if skip_list.include?(File.basename(filename))
-          cli.plugins << class_in_file!(filename,container_module)
+    class SoftException < Exception
+      alias_method :orig_to_s, :to_s
+      def to_s
+        msg = orig_to_s
+        if (['',nil,self.class.to_s].include?(msg) and @details[:object])
+          msg =  (@details[:object].errors.map.flatten.join('  '))
         end
-      end    
-    end  
-    module Erroneous
-      def errors
-        @errors ||= []
-        @errors
+        msg
+      end                
+    end
+
+    # Should the user see the message from the exception? 
+    KindOfRe = %r{^\+([^\+]+)\+ should be Hipe::SocialSync::Model::([^,]+), but was (.+)}
+    Gracefuls = Hipe::RulesLite.new do
+      rule( "SoftExceptions can be shown to the user"){
+        condition  { SoftException === e }
+        consequence{ e }
+      }
+      rule( "type assertion failures can be shown to user" ){
+        condition   { ArgumentError === e && (response.md = KindOfRe.match(e.message)) }
+        consequence { SoftException[%{#{response.md[1]} #{response.md[2].downcase} not found}] }
+      }
+    end
+    class App
+      include Hipe::Cli
+      cli.program_name = 'sosy' # necessary b/c when running it from bacon, its name became 'bacon'
+      cli.description = 'Import your wordpress blogs into tumblr.'      
+      cli.option('-e','--env ENV',['test','dev'],'environment', :default=>'dev')
+      cli.does '-h','--help' , 'display this help screen (for the sosy app)'
+      cli.default_command = :help
+      cli.plugins.add_directory(%{#{DIR}/lib/hipe-socialsync/controllers}, Plugins, :lazy=>true)
+      cli.graceful{ |e| Gracefuls.assess(:e=>e, :response=>OpenStruct.new) }
+      cli.config = OpenStruct.new({
+        :db => Hipe::OpenStructExtended.new({
+          :test => %{sqlite3://#{Hipe::SocialSync::DIR}/data/test.db},
+          :dev  => %{sqlite3://#{Hipe::SocialSync::DIR}/data/dev.db}
+        })
+      })
+      
+      def connect!
+        unless (connect_string = cli.config.db[cli.opts.env])
+          raise Exception[%{Couldn't find connect string for evironment setting #{cli.opts.env.inspect}}]
+        end
+        DataMapper.setup(:default, connect_string)
       end
-      def valid?
-        !@errors || @errors.size == 0
+
+      # @return [bool] whether or not you actually needed to make a db connection
+      def before_run
+        return false if DataMapper::Repository.adapters.size > 0
+        connect!
+        require 'hipe-socialsync/model'
+        true
       end
-    end  
-    module HashOpenStructExtension
-      def init_hash_openstruct_extension
-        super()
-        @open_struct = OpenStruct.new
-        @open_struct.instance_variable_set('@table',self)
+      
+      cli.does('db-rotate', 'move the dev database over') do
+        option('-c','--consistent','output the same thing every time (for gulp testing)')
       end
-      def method_missing(method_name, *args)
-        @open_struct.method_missing(method_name, *args)
+      def db_rotate(opts)
+        connect_string = cli.config.db[opts.env]
+        unless(md=%r{^sqlite3://(.*)$}.match(connect_string))
+          raise Exception[%{db_rotate only works for sqlite strings.  couldn't parse "#{connect_string}"}]
+        end
+        filename = md[1]
+        begin
+          if (File.exists?(filename))
+            backup = %{#{filename}.#{DateTime.now.strftime('%Y-%m-%d__%H_%I_%S.db')}}
+            FileUtils.mv(filename,backup)
+            result = opts.consistent ?  
+              %{moved #{File.basename(filename)} to backup file.} : 
+              %{moved #{filename} to #{backup}} 
+            connect!
+          else 
+            result = %{file #{filename} doesn't exist}
+          end
+        rescue Errno::ENOENT => e
+          result = Exception.upgrade(e)
+        end
+        Hipe::Io::GoldenHammer[result]
       end
     end
-    class GoldenHammer < Hipe::Io::BufferString
-      include Erroneous
-      attr_reader :data
-      def initialize
-        super()
-        @data = {}
-        @data.extend HashOpenStructExtension
-      end
-    end  
-  end
-  module SocialSync
-    class App
-      include Hipe::Cli      
-      extend Hipe::Experimental::CliClassExtensions
-      load_plugins_from_dir %{#{DIR}/lib/hipe-socialsync/controllers}, Plugins
-      cli.description = 'Import your wordpress blogs into tumblr.'
-      cli.does '-h','--help' , 'display this help screen (for the sosy app)'
-      cli.out[:golden_hammer] = Hipe::Experimental::GoldenHammer
-    end     
   end
 end
-

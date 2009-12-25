@@ -1,0 +1,54 @@
+# This is a gentest file for use with hipe-cli gentest.
+#
+# 
+
+{
+"prompt":"~/d > ",
+"desc":"primordial tests",
+"klass":"Hipe::SocialSync::App",
+"requires":["hipe-socialsync"]
+}
+
+# move database.
+~/d > sosy db-rotate -c
+moved dev.db to backup file.
+
+# add user
+~/d > sosy users:add m@m.com admin
+created user "m@m.com". Now there are 2 users.
+
+# add again
+~/d > sosy users:add m2@m.com m@m.com
+created user "m2@m.com". Now there are 3 users.
+
+# delete user
+~/d > sosy users:delete m2@m.com m@m.com
+User 3 destroyed!
+
+# add service
+~/d > sosy services:add wordpress m@m.com
+Service "wordpress" already exists.
+See "sosy services:add -h" for more info.
+
+# add service wrong user
+~/d > sosy services:add wordpressz meh@m.com
+can't find user from [{:email=>"meh@m.com"}]({:type=>:expected_entity_missing})
+See "sosy services:add -h" for more info.
+
+# add service
+~/d > sosy services:add wordpressz m@m.com
+created service "wordpressz". Now there are 3 services.
+
+# list svcs
+~/d > sosy services:list
+2                    tumblr
+1                 wordpress
+3                wordpressz
+(3 services)
+
+# list users
+~/d > sosy users:list
+1                     admin
+2                   m@m.com
+(2 users)
+
