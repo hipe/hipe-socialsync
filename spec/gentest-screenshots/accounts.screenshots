@@ -1,9 +1,10 @@
+# hipe-cli gentest spec/gentest-screenshots/accounts.screenshots
 # This is a gentest file for use with hipe-cli gentest.
 {
 "prompt":"~/d > ",
-"desc":"primordial tests",
+"describe":"account tests",
 "klass":"Hipe::SocialSync::App",
-"requires":["hipe-socialsync"],
+"requires":["hipe-socialsync","hipe-core/test/bacon-extensions"],
 "run_with":"app",
 "chomp":true,
 "letter":"a"
@@ -31,26 +32,26 @@ See "sosy accounts:list -h" for more info.
 0 accounts
 
 
-~/d > sosy accounts:add wordpress admin@admin imauser
-Can't find service with name "wordpress".
+~/d > sosy accounts:add wordprez admin@admin imauser
+Can't find service with name "wordprez".
 
-~/d > sosy services:add wordpress admin@admin
-Created service "wordpress".  Now there is one service.
+~/d > sosy services:add wordprez admin@admin
+Created service "wordprez".  Now there are three services.
 
-~/d > sosy accounts:add wordpress admin@admin imauser
-Added wordpress account of "imauser".
+~/d > sosy accounts:add wordprez admin@admin imauser
+Added wordprez account of "imauser".
 
-~/d > sosy accounts:add wordpress admin@admin imauser2
-Added wordpress account of "imauser2".
+~/d > sosy accounts:add wordprez admin@admin imauser2
+Added wordprez account of "imauser2".
 
 ~/d > sosy accounts:list admin@admin
-2               wordpress            imauser2
-1               wordpress             imauser
+2               wordprez            imauser2
+1               wordprez             imauser
 2 accounts
 
-~/d > sosy accounts:delete wordpress imauser2 admin@admin
-Removed record of wordpress account for "imauser2".
+~/d > sosy accounts:delete wordprez imauser2 admin@admin
+Removed record of wordprez account for "imauser2".
 
-~/d > sosy accounts:add wordpress admin@admin imauser
-account already exists for wordpress with username "imauser"
+~/d > sosy accounts:add wordprez admin@admin imauser
+account already exists for wordprez with username "imauser"
         

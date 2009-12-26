@@ -1,10 +1,11 @@
+# hipe-cli gentest spec/gentest-screenshots/users.screenshots
 # This is a gentest file for use with hipe-cli gentest.
 #
 # 
 
 {
 "prompt":"~/d > ",
-"desc":"primordial tests",
+"describe":"user tests",
 "klass":"Hipe::SocialSync::App",
 "requires":["hipe-socialsync"],
 "run_with":"app",

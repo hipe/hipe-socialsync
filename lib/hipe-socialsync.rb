@@ -35,7 +35,6 @@ module Hipe
       cli.does '-h','--help' , 'display this help screen (for the sosy app)'
       cli.default_command = :help
       cli.plugins.add_directory(%{#{DIR}/lib/hipe-socialsync/controllers}, Plugins, :lazy=>true)
-      #cli.graceful{ |e| Gracefuls.assess(:e=>e, :response=>OpenStruct.new) }
       cli.config = OpenStruct.new({
         :db => Hipe::OpenStructExtended.new({
           :test => %{sqlite3://#{Hipe::SocialSync::DIR}/data/test.db},
@@ -44,17 +43,19 @@ module Hipe
       })
       
       def connect!
-        unless (connect_string = cli.config.db[cli.opts.env])
+        unless (connect_string = cli.config.db[@universal_option_values.env])
           raise Exception[%{Couldn't find connect string for evironment setting #{cli.opts.env.inspect}}]
         end
         DataMapper.setup(:default, connect_string)
       end
 
       # @return [bool] whether or not you actually needed to make a db connection
-      def before_run
+      def before_run(universal_option_values)
+        @universal_option_values = universal_option_values
         return false if DataMapper::Repository.adapters.size > 0
         connect!
         require 'hipe-socialsync/model'
+        Hipe::SocialSync::Model.auto_migrate
         true
       end
       
@@ -63,22 +64,30 @@ module Hipe
       end
       
       cli.does('db-rotate', 'move the dev database over') do
-        option('-c','--consistent','output the same thing every time (for gulp testing)')
+        option('-c','--consistent','output the same thing every time (for testing)')
+        option('-o','--out-file PATH','write backup database to this file')        
       end
-      def db_rotate(opts)
-        connect_string = cli.config.db[opts.env]
+      def db_path
+        connect_string = cli.config.db[@universal_option_values.env]
         unless(md=%r{^sqlite3://(.*)$}.match(connect_string))
-          raise Exception[%{db_rotate only works for sqlite strings.  couldn't parse "#{connect_string}"}]
+          raise Exception[%{For now this only works for sqlite strings.  Couldn't parse "#{connect_string}"}]
         end
         filename = md[1]
+        filename
+      end
+      
+      def db_rotate(opts)
+        filename = db_path
         begin
           if (File.exists?(filename))
-            backup = %{#{filename}.#{DateTime.now.strftime('%Y-%m-%d__%H_%I_%S.db')}}
+            backup = opts.out_file || %{#{filename}.#{DateTime.now.strftime('%Y-%m-%d__%H_%I_%S.db')}}
             FileUtils.mv(filename,backup)
-            result = opts.consistent ?  
-              %{moved #{File.basename(filename)} to backup file.} : 
-              %{moved #{filename} to #{backup}} 
+            raise "Rotate only works when we have one (:default) adapter" unless 
+              DataMapper::Repository.adapters.keys == [:default]
+            DataMapper::Repository.adapters.clear # hack1 -- now that it's not on the filesystem we don't want it here
+            result = %{Moved #{File.basename(filename)} to }+(opts.consistent ? "backup file." : %{#{backup}.})            
             connect!
+            Hipe::SocialSync::Model.auto_migrate            
           else 
             result = %{file #{filename} doesn't exist}
           end
@@ -88,6 +97,7 @@ module Hipe
         Hipe::Io::GoldenHammer[result]
       end
     end
+    
     class GoldenHammer < Hipe::Io::GoldenHammer
       def to_s
         if (data.common_template)

@@ -9,6 +9,23 @@ repository(:default).adapter.resource_naming_convention = lambda do |value|
 end
 
 module Hipe::SocialSync::Model
+  
+  def self.auto_migrate # expected to by called by app maybe on a before-run hook and after db-rotate
+    repo = DataMapper.repository   
+    unless repo.storage_exists?('relationships'); Relationship.auto_migrate! end
+    unless repo.storage_exists?('events');        Event       .auto_migrate! end
+    unless repo.storage_exists?('accounts');      Account     .auto_migrate! end   
+    unless repo.storage_exists?('items');         Item        .auto_migrate! end    
+    unless repo.storage_exists?('users')
+      User.auto_migrate!    
+      User.create_or_throw(:email=>'admin@admin')
+    end  
+    unless repo.storage_exists?('services')
+      Service.auto_migrate!
+      Service.create(:name => 'wordpress')
+      Service.create(:name => 'tumblr')    
+    end
+  end # def auto_migrate
 
   class ValidationError
     attr_accessor :details, :message
@@ -272,7 +289,7 @@ module Hipe::SocialSync::Model
         %{You already have another %s blog entry in the "%s" account with that foreign id (#%s).}.t(
           o.account.service.name, o.account.name_credential, o.send(prop.name)
         )
-      }
+      } 
     
     def self.kreate(account_obj, foreign_id, author_str, content_str, 
          keywords_str, published_at, status, title, current_user_obj)
@@ -304,43 +321,5 @@ module Hipe::SocialSync::Model
   #  include CommonDataObject    
   #end
   
-  
-  ################## build the database ############################
 
-  repo = DataMapper.repository
-  
-  unless repo.storage_exists?('relationships')
-    Relationship.auto_migrate!
-  end
-  
-  unless repo.storage_exists?('events')
-    Event.auto_migrate!
-  end
-  
- # we were trying to cheat 
- #if repo.storage_exists?('users') && User.count == 0
- #  require 'dm-migrations'
- #  mig = DataMapper::Migration.new(1,:drop_users_table){ down{ drop_table :users } }
- #  mig.create_migration_info_table_if_needed    
- #  mig.perform_down
- #end
- #
-  unless repo.storage_exists?('users')
-    User.auto_migrate!    
-    User.create_or_throw(:email=>'admin@admin')
-  end  
-  
-  unless repo.storage_exists?('services')
-    Service.auto_migrate!
-    Service.create(:name => 'wordpress')
-    Service.create(:name => 'tumblr')    
-  end
-  
-  unless repo.storage_exists?('accounts')
-    Account.auto_migrate!
-  end  
-  
-  unless repo.storage_exists?('items')
-    Item.auto_migrate!
-  end
-end # module Hipe::SocialSync
+end # module Hipe::SocialSync::Model

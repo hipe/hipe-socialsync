@@ -1,7 +1,8 @@
+# hipe-cli gentest spec/gentest-screenshots/services.screenshots
 # This is a gentest file for use with hipe-cli gentest.
 {
 "prompt":"~/d > ",
-"desc":"primordial tests",
+"describe":"service tests",
 "klass":"Hipe::SocialSync::App",
 "requires":["hipe-socialsync"],
 "run_with":"app",
