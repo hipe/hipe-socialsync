@@ -16,7 +16,7 @@ require 'hipe-socialsync'
 describe "Generated test (generated tests)" do
 
   it "sosy db-rotate -c (s-0)" do
-    @app = Hipe::SocialSync::App.new 
+    @app = Hipe::SocialSync::App.new
     x = @app.run(["db-rotate", "-c"])
     y = "moved dev.db to backup file."
     x.to_s.chomp.should.equal y
@@ -26,7 +26,7 @@ describe "Generated test (generated tests)" do
     x = @app.run(["services:add", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     services:add - add a service to the list
-    
+
     Usage: sosy services:add [-h] name current_user_email
         -h
             name                         any ol' name you want, not an existing name

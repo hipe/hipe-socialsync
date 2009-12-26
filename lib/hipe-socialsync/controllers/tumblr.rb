@@ -7,10 +7,10 @@ module Hipe::SocialSync::Plugins
   class Tumblr
     Url = 'http://www.tumblr.com/api/write'   # http://www.tumblr.com/docs/api#api_write
     include Hipe::Cli
-    include Hipe::SocialSync::Model    
+    include Hipe::SocialSync::Model
     DATETIME_RE = '\d\d(?:\d\d)?-\d\d?-\d\d?(?: \d\d?:\d\d(?::\d\d)?)?{0,2}'
-    def self.generator_name; 'ADE - slow burn' end    
-    
+    def self.generator_name; 'ADE - slow burn' end
+
     cli.does('push',"push the intermediate yml file up to tumblr") do
       option('--sleep-every SEC',  %{sleep for n seconds after you push these many items, e.g.}+
                                    %{ --sleep-every="10"}){
@@ -38,8 +38,8 @@ module Hipe::SocialSync::Plugins
       @out = cli.out.new
       @password = prompt_for_password
       @url = Url
-      @to_cred = to_cred 
-      
+      @to_cred = to_cred
+
       # validate that objects exist
       user = User.first!(:email=>current_user_email)
       svc = Service.first!(:name=>from_svc)
@@ -49,17 +49,17 @@ module Hipe::SocialSync::Plugins
       @num_pushed = 0
       @limit = opts.limit
       date_range = DateRange[opts.date_range] || DateRange::Any
-      
+
       h = {:order => [:published_at.desc]}
       h[:account] = acct
       if (opts.date_range)
         h[:published_at.lt] = date_range.begin
         h[:published_at.gt] = date_range.end
       end
-      
+
       items = Item.all(h)
       if items.count == 0
-        return (@out.puts(%{no wp items found #{date_range}}))  
+        return (@out.puts(%{no wp items found #{date_range}}))
       end
 
       catch(:limit_reached) do
@@ -87,14 +87,14 @@ module Hipe::SocialSync::Plugins
         @out.puts %{After pushing #{@sleep_every} items, will sleep for #{@sleep_for} seconds}
         sleep @sleep_for
       end
-      
+
       if item.content.strip.empty?
         @out.puts %{skipping article with empty body from #{item.published_at} ...}
         return
       end
-      
+
       push! item
-      
+
       if (@limit && @num_pushed >= @limit)
         @out.puts %{Reached limit of #{@limit} items}
         throw :limit_reached

@@ -16,23 +16,23 @@ require 'hipe-socialsync'
 describe "Generated test (generated tests)" do
 
   it "# bad plugin name (u-0)" do
-    @app = Hipe::SocialSync::App.new 
+    @app = Hipe::SocialSync::App.new
     x = @app.run(["db:rotate"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     Unrecognized plugin "db". Known plugins are "accounts", "item", "services", "users" and "wp"
     __HERE__
     x.to_s.chomp.should.equal y
   end
-  
+
   it "# bad plugin name (u-0.5)" do
-    @app = Hipe::SocialSync::App.new 
+    @app = Hipe::SocialSync::App.new
     x = @app.run(["db:rotate"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     Unrecognized plugin "db". Known plugins are "accounts", "item", "services", "users" and "wp"
     __HERE__
     x.to_s.chomp.should.equal y
   end
-  
+
   it "# move database. (u-1)" do
     x = @app.run(["db-rotate", "-c"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
@@ -63,7 +63,7 @@ describe "Generated test (generated tests)" do
     x = @app.run(["users:add", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     users:add - add a user to the list
-    
+
     Usage: sosy users:add [-h] email admin_email
         -h
             email                        any ol' name you want, not an existing name
@@ -75,7 +75,7 @@ describe "Generated test (generated tests)" do
   it "# extra argument (u-5)" do
     x = @app.run(["users:add", "blah", "blah", "blah"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
-    there is one unexpected argument: "blah": 
+    there is one unexpected argument: "blah":
     See "sosy users:add -h" for more info.
     __HERE__
     x.to_s.chomp.should.equal y
@@ -144,7 +144,7 @@ describe "Generated test (generated tests)" do
     x = @app.run(["users:delete", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     users:delete - delete user accounts
-    
+
     Usage: sosy users:delete [-h] email admin
         -h
             email
@@ -156,7 +156,7 @@ describe "Generated test (generated tests)" do
   it "# delete with too many arguments (u-14)" do
     x = @app.run(["users:delete", "blah", "blah", "blah"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
-    there is one unexpected argument: "blah": 
+    there is one unexpected argument: "blah":
     See "sosy users:delete -h" for more info.
     __HERE__
     x.to_s.chomp.should.equal y

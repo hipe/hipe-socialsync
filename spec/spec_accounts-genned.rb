@@ -17,7 +17,7 @@ require 'hipe-core/test/bacon-extensions'
 describe "Generated test (generated tests)" do
 
   skipit "sosy db-rotate -c (a-0)" do
-    @app = Hipe::SocialSync::App.new 
+    @app = Hipe::SocialSync::App.new
     x = @app.run(["db-rotate", "-c"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     moved dev.db to backup file.
@@ -29,7 +29,7 @@ describe "Generated test (generated tests)" do
     x = @app.run(["accounts:list", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     accounts:list - show all accounts
-    
+
     Usage: sosy accounts:list [-h] current_user_email
         -h
             current_user_email           the email of the current user

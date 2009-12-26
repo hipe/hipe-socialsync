@@ -9,21 +9,21 @@ repository(:default).adapter.resource_naming_convention = lambda do |value|
 end
 
 module Hipe::SocialSync::Model
-  
+
   def self.auto_migrate # expected to by called by app maybe on a before-run hook and after db-rotate
-    repo = DataMapper.repository   
+    repo = DataMapper.repository
     unless repo.storage_exists?('relationships'); Relationship.auto_migrate! end
     unless repo.storage_exists?('events');        Event       .auto_migrate! end
-    unless repo.storage_exists?('accounts');      Account     .auto_migrate! end   
-    unless repo.storage_exists?('items');         Item        .auto_migrate! end    
+    unless repo.storage_exists?('accounts');      Account     .auto_migrate! end
+    unless repo.storage_exists?('items');         Item        .auto_migrate! end
     unless repo.storage_exists?('users')
-      User.auto_migrate!    
+      User.auto_migrate!
       User.create_or_throw(:email=>'admin@admin')
-    end  
+    end
     unless repo.storage_exists?('services')
       Service.auto_migrate!
       Service.create(:name => 'wordpress')
-      Service.create(:name => 'tumblr')    
+      Service.create(:name => 'tumblr')
     end
   end # def auto_migrate
 
@@ -43,16 +43,16 @@ module Hipe::SocialSync::Model
       end
     end
   end
-  
+
   module ValidationErrorsClassMethods
     def [](*args)
       if (String===args[0] && (args.size==1 or args.size==2 && Hash===args[1]))
         ret = self.new
         ret.errors << ValidationError.new(args[0],args[1])
       elsif (1==args.size and CommonDataObject===args[0])
-        object = args[0]        
-        raise ArgumentError.new("object must be invalid") if object.valid? 
-        ret = self.new                
+        object = args[0]
+        raise ArgumentError.new("object must be invalid") if object.valid?
+        ret = self.new
         ret.errors << ValidationError.new(nil, :object => object)
       else
         raise ArgumentError.new("bad signature: #{args.map{|x| x.class} * ', '}")
@@ -60,21 +60,21 @@ module Hipe::SocialSync::Model
       ret
     end
   end
-  
+
   module ValidationErrorsInstanceMethods
     def to_s
       errors.map{|x| x.message} * '  '
     end
-  end    
-  
+  end
+
   class ValidationErrors
-    include Hipe::Erroneous    
+    include Hipe::Erroneous
     extend ValidationErrorsClassMethods
     include ValidationErrorsInstanceMethods
   end
-  
+
   class ValidationErrorsException < ::Exception
-    include Hipe::Erroneous    
+    include Hipe::Erroneous
     extend ValidationErrorsClassMethods
     include ValidationErrorsInstanceMethods
   end
@@ -82,12 +82,12 @@ module Hipe::SocialSync::Model
   module Inflector
     def self.humanize(str) #@TODO see if this is the same as Extlib::Inflector.humanize
       str.to_s.match(/[^:]+$/)[0].gsub(/([a-z])([A-Z])/,'\1 \2').downcase
-    end    
+    end
     def self.class_basename(cls)
-      cls.to_s.match(/([^:]*)$/).captures[0]      
+      cls.to_s.match(/([^:]*)$/).captures[0]
     end
   end
-  
+
   module CommonDataObject
     include DataMapper::Types
     def self.included(model)
@@ -99,10 +99,10 @@ module Hipe::SocialSync::Model
   module CommonDataObjectClassMethods
     def human_name
       Inflector.humanize(self.to_s)
-    end    
+    end
     def class_basename
       Inflector.class_basename(self.to_s)
-    end    
+    end
     def create_or_throw *args
       obj = self.new(args[0])
       throw :invalid, ValidationErrors[obj] unless obj.valid?
@@ -115,16 +115,16 @@ module Hipe::SocialSync::Model
       msg = %{Can't find #{human_name} with } + # makes some assumptions about how args look!
         ( args[0].map{|pair|  %{#{Inflector.humanize(pair[0])} #{pair[1].inspect}}} * ' and ' ) + '.'
       throw :invalid, ValidationErrors[msg]
-    end  
+    end
     def to_time_or_throw(mixed)
       return mixed if DateTime === mixed
-      begin                                                                                
-        datetime = DateTime.parse(mixed)                                                   
-        return datetime                                                                    
-      rescue ArgumentError => e                                                              
+      begin
+        datetime = DateTime.parse(mixed)
+        return datetime
+      rescue ArgumentError => e
         throw :invalid, ValidationErrors[%{#{e.message}: #{mixed.inspect}}, {:original_exception=>e}]
-      end                                                                                  
-    end 
+      end
+    end
     def kind_of_or_throw(name, value, *klasses)
       klasses.each { |k| return if value.kind_of?(k) }
       should_be = klasses.map{|k| k.respond_to?(:class_basename) ? k.class_basename : k.name } * ' or '
@@ -132,36 +132,36 @@ module Hipe::SocialSync::Model
         %{#{name} not found.}.capitalize
       else
         %{#{name} should be #{should_be} but was #{Inflector.class_basename(value.class)}}
-      end      
+      end
       throw :invalid, ValidationErrors[msg]
-    end                                                                                  
+    end
   end
 
   class Relationship
     include DataMapper::Resource
-    include CommonDataObject    
+    include CommonDataObject
     property :type, String, :length => (2..40)
     property :left_class, String, :length => (2..50)
     property :left_id, Integer, :required => true
     property :right_class, String, :length => (2..50)
     property :right_id, Integer, :required => true
-    
+
     def self.kreate left, type, right
       assert_kind_of :left, left, CommonDataObject
-      assert_kind_of :left, right, CommonDataObject      
+      assert_kind_of :left, right, CommonDataObject
       assert_kind_of :type, type, Symbol
-      
+
       obj = self.new  :left_class  => left.class.to_s,  :right_class => right.class.to_s,
                       :left_id     => left.id,          :right_id    => right.id,
                       :type        => type.to_s
-      raise ValidationErrorsException[obj] unless obj.valid? 
+      raise ValidationErrorsException[obj] unless obj.valid?
       obj.save
     end
   end
 
   class Event
     include DataMapper::Resource
-    include CommonDataObject    
+    include CommonDataObject
     property :type, String, :length => (2..60)
     property :happened_at, DateTime, :required => true
 
@@ -178,42 +178,42 @@ module Hipe::SocialSync::Model
 
   class User
     include DataMapper::Resource
-    include CommonDataObject    
+    include CommonDataObject
 
     property :email, String, :length=>(1..80), :format => :email_address, :unique => true,
       :messages => {
         :format    => lambda{|res, prop| '"%s" is not a valid email address.'.t(prop)  },
-        :is_unique => lambda{|res, prop| 'There is already a %s "%s".'.t(res.class.human_name,res.send(prop.name))}    
-      } 
-    property :encrypted_password, String          
+        :is_unique => lambda{|res, prop| 'There is already a %s "%s".'.t(res.class.human_name,res.send(prop.name))}
+      }
+    property :encrypted_password, String
     #has n, :accounts
-    
+
     def self.kreate email, admin
       email.strip!
       kind_of_or_throw :admin, admin, User
       obj = self.create_or_throw(:email => email)
       Event.kreate :user_created, :user => obj, :by => admin
       obj
-    end    
-    
-    def self.remove(target_user_email, current_user_email)      
+    end
+
+    def self.remove(target_user_email, current_user_email)
       current_user = User.first_or_throw(:email => current_user_email)
-      target_user = User.first_or_throw(:email => target_user_email)    
+      target_user = User.first_or_throw(:email => target_user_email)
       Event.kreate :user_deleted, :user => target_user, :by => current_user
       target_user.destroy!
       %{Deleted user "#{target_user.email}" (##{target_user.id}).}
     end
   end
-  
+
   class Service
     include DataMapper::Resource
     include CommonDataObject
 
-    has n, :accounts    
-    property :name, String, :length=>(2..20), :unique => true, 
+    has n, :accounts
+    property :name, String, :length=>(2..20), :unique => true,
       :messages => {
-        :is_unique => lambda{|res, prop| 'There is already a %s "%s".'.t(res.class.human_name,res.send(prop.name))}    
-      }    
+        :is_unique => lambda{|res, prop| 'There is already a %s "%s".'.t(res.class.human_name,res.send(prop.name))}
+      }
     def self.kreate name, user_obj
       assert_kind_of :user, user_obj, User
       obj = self.create_or_throw(:name => name)
@@ -223,23 +223,23 @@ module Hipe::SocialSync::Model
 
     def self.remove(target_name, user_obj)
       assert_kind_of :user, user_obj, User
-      target = Service.first_or_throw(:name => target_name)      
+      target = Service.first_or_throw(:name => target_name)
       Event.kreate :service_deleted, :service=>target, :by=>user_obj
       target.destroy!
       %{Deleted service "#{target.name}" (##{target.id}).}
-    end    
+    end
   end
-  
+
   class Account
     include DataMapper::Resource
     include CommonDataObject
-    
+
     belongs_to :user
     belongs_to :service
     property :name_credential, String, :length => (1..20)
-    
+
     def self.kreate(service_name, name_credential, user_obj)
-      assert_kind_of :user, user_obj, User      
+      assert_kind_of :user, user_obj, User
       service_obj = Service.first_or_throw(:name=>service_name)
       conditions = {:user=>user_obj, :service=>service_obj, :name_credential=>name_credential}
       obj = self.first_or_new(conditions, conditions)
@@ -248,25 +248,25 @@ module Hipe::SocialSync::Model
         throw :invalid, ValidationErrors[msg]
       end
       obj.save or throw :invalid, ValidationErrors[obj]
-      Event.kreate :service_account_added, :account => obj, :by => user_obj      
+      Event.kreate :service_account_added, :account => obj, :by => user_obj
       obj
     end
 
     def self.remove(service_name, name_credential, user_obj)
       assert_kind_of :user, user_obj, User
       svc = Service.first_or_throw(:name => service_name)
-      acct = self.first_or_throw(:service=>svc, :name_credential=>name_credential, :user=>user_obj)      
+      acct = self.first_or_throw(:service=>svc, :name_credential=>name_credential, :user=>user_obj)
       acct.destroy!
-      Event.kreate :service_account_deleted, :account=>acct, :by=>user_obj      
+      Event.kreate :service_account_deleted, :account=>acct, :by=>user_obj
       %{Removed record of #{svc.name} account for "#{name_credential}".}
-    end 
+    end
   end
-  
-  
+
+
   class Item
     include DataMapper::Resource
     include CommonDataObject
-    
+
     belongs_to :account
     property :foreign_id, Integer, :required => true
     property :author, String, :length => (2..20)
@@ -276,31 +276,31 @@ module Hipe::SocialSync::Model
     property :published_at, DateTime, :required => true
     property :status, String
     property :title, String, :length => (1..80)
-    validates_is_unique :content_md5, :scope => :account_id, 
+    validates_is_unique :content_md5, :scope => :account_id,
       :message => lambda{|res,prop| %{md5 "%s" is already taken.}.t(res.send(prop.name))}
-    validates_is_unique :content, :scope => :account_id, 
-      :message => lambda { |res,prop| 
+    validates_is_unique :content, :scope => :account_id,
+      :message => lambda { |res,prop|
         %{Another blog entry (#%s) from %s already has that content}.t(
           res.foreign_id, res.published_at.strftime('%Y-%m-%d')
         )
       }
     validates_is_unique :foreign_id, :scope => :account_id,
-      :message => lambda { |o,prop| 
+      :message => lambda { |o,prop|
         %{You already have another %s blog entry in the "%s" account with that foreign id (#%s).}.t(
           o.account.service.name, o.account.name_credential, o.send(prop.name)
         )
-      } 
-    
-    def self.kreate(account_obj, foreign_id, author_str, content_str, 
+      }
+
+    def self.kreate(account_obj, foreign_id, author_str, content_str,
          keywords_str, published_at, status, title, current_user_obj)
-      published_at = to_time_or_throw published_at      
+      published_at = to_time_or_throw published_at
       kind_of_or_throw :user, current_user_obj, User
       kind_of_or_throw 'date/time', published_at, DateTime
       kind_of_or_throw :account, account_obj, Account
       kind_of_or_throw :keywords, keywords_str, String
-      md5 = MD5.new(content_str).to_s  
+      md5 = MD5.new(content_str).to_s
       obj = self.create(
-        :account        => account_obj,         
+        :account        => account_obj,
         :foreign_id     => foreign_id,
         :author         => author_str,
         :content        => content_str,
@@ -315,11 +315,11 @@ module Hipe::SocialSync::Model
       obj
     end
   end
-  
+
   #class UploadedFile
   #  include DataMapper::Resource
-  #  include CommonDataObject    
+  #  include CommonDataObject
   #end
-  
+
 
 end # module Hipe::SocialSync::Model

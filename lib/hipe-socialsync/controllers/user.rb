@@ -6,11 +6,11 @@ module Hipe::SocialSync::Plugins
     cli.description = "it's premature to add users, don't you think?"
     cli.does 'help'
     cli.does(:add, "add a user to the list"){
-      option('-h',&help)      
+      option('-h',&help)
       required('email', "any ol' name you want, not an existing name")
       required('admin_email',"the person acting as the admin")
     }
-    def add email, admin_email, opts    
+    def add email, admin_email, opts
       out = cli.out.new
       admin = User.first_or_throw(:email=>admin_email)
       response = User.kreate email, admin
@@ -30,7 +30,7 @@ module Hipe::SocialSync::Plugins
     cli.does(:delete,"delete user accounts"){
       option('-h',&help)
       required('email')
-      required('admin')      
+      required('admin')
     }
     def delete email, admin, opts=nil
       out = cli.out.new

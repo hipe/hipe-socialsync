@@ -30,7 +30,7 @@ module Hipe
     class App
       include Hipe::Cli
       cli.program_name = 'sosy' # necessary b/c when running it from bacon, its name became 'bacon'
-      cli.description = 'Import your wordpress blogs into tumblr.'      
+      cli.description = 'Import your wordpress blogs into tumblr.'
       cli.option('-e','--env ENV',['test','dev'],'environment', :default=>'dev')
       cli.does '-h','--help' , 'display this help screen (for the sosy app)'
       cli.default_command = :help
@@ -41,7 +41,7 @@ module Hipe
           :dev  => %{sqlite3://#{Hipe::SocialSync::DIR}/data/dev.db}
         })
       })
-      
+
       def connect!
         unless (connect_string = cli.config.db[@universal_option_values.env])
           raise Exception[%{Couldn't find connect string for evironment setting #{cli.opts.env.inspect}}]
@@ -58,14 +58,14 @@ module Hipe
         Hipe::SocialSync::Model.auto_migrate
         true
       end
-      
+
       def run(argv)
         return catch(:invalid) { cli.run(argv) } # return either the ValidationError or the result
       end
-      
+
       cli.does('db-rotate', 'move the dev database over') do
         option('-c','--consistent','output the same thing every time (for testing)')
-        option('-o','--out-file PATH','write backup database to this file')        
+        option('-o','--out-file PATH','write backup database to this file')
       end
       def db_path
         connect_string = cli.config.db[@universal_option_values.env]
@@ -75,20 +75,20 @@ module Hipe
         filename = md[1]
         filename
       end
-      
+
       def db_rotate(opts)
         filename = db_path
         begin
           if (File.exists?(filename))
             backup = opts.out_file || %{#{filename}.#{DateTime.now.strftime('%Y-%m-%d__%H_%I_%S.db')}}
             FileUtils.mv(filename,backup)
-            raise "Rotate only works when we have one (:default) adapter" unless 
+            raise "Rotate only works when we have one (:default) adapter" unless
               DataMapper::Repository.adapters.keys == [:default]
             DataMapper::Repository.adapters.clear # hack1 -- now that it's not on the filesystem we don't want it here
-            result = %{Moved #{File.basename(filename)} to }+(opts.consistent ? "backup file." : %{#{backup}.})            
+            result = %{Moved #{File.basename(filename)} to }+(opts.consistent ? "backup file." : %{#{backup}.})
             connect!
-            Hipe::SocialSync::Model.auto_migrate            
-          else 
+            Hipe::SocialSync::Model.auto_migrate
+          else
             result = %{file #{filename} doesn't exist}
           end
         rescue Errno::ENOENT => e
@@ -97,7 +97,7 @@ module Hipe
         Hipe::Io::GoldenHammer[result]
       end
     end
-    
+
     class GoldenHammer < Hipe::Io::GoldenHammer
       def to_s
         if (data.common_template)

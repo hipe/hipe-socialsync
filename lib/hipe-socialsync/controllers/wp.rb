@@ -22,7 +22,7 @@ module Hipe::SocialSync::Plugins
         it.gets_opened
       }
       required('service-credential-name','eg your email on the service')
-      required('current-user-email','who is using this?')      
+      required('current-user-email','who is using this?')
     }
 
     def pull(xml_in,cred,user_email, opts)
@@ -36,7 +36,7 @@ module Hipe::SocialSync::Plugins
       }
       objects = objects in_files, opts.limit
       out << summarize(@summary, yaml_file)
-      ic  =  Hipe::SocialSync::Plugins::Item.new      
+      ic  =  Hipe::SocialSync::Plugins::Item.new
       i = 0
       objects.each_with_index do |o,i|
         out.puts ic.add('wp', cred, o.art_id, o.author, o.content, obj.tags, o.post_date,o.status,o.title,user_email)
