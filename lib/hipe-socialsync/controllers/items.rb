@@ -4,6 +4,7 @@ module Hipe::SocialSync::Plugins
     include Hipe::Cli
     include Hipe::AsciiTypesetting::Methods
     include Hipe::SocialSync::Model
+    include Hipe::SocialSync::ControllerCommon    
     cli.out.klass = Hipe::SocialSync::GoldenHammer
     cli.description = "blog entries"
     cli.does 'help','overview of item commands'
@@ -22,7 +23,7 @@ module Hipe::SocialSync::Plugins
     end
     def add(service_name, name_credential, foreign_id, author, content, keywords_str,published_at,status,title,user_email,o)
       out = cli.out.new
-      user = User.first_or_throw(:email=>user_email)
+      user = current_user(user_email)
       svc = Service.first_or_throw(:name=>service_name)
       acct = Account.first_or_throw(:name_credential=>name_credential, :service=>svc, :user=>user)
       item = Item.kreate(acct, foreign_id, author, content, keywords_str, published_at, status, title, user)
@@ -34,7 +35,7 @@ module Hipe::SocialSync::Plugins
       required('current_user_email')
     end
     def list(current_user_email,*args)
-      user = User.first_or_throw(:email=>current_user_email)
+      user = current_user(current_user_email)
       out = cli.out.new
       out.data.common_template = 'list'
       out.data.list = Item.all :order => [:published_at.desc]
@@ -54,7 +55,7 @@ module Hipe::SocialSync::Plugins
       required('current_user_email')
     end
     def delete(id,current_user_email,opts)
-      user = User.first_or_throw(:email=>current_user_email)
+      user = current_user(current_user_email)
       out = cli.out.new
       out << Item.remove(id, user)
       out

@@ -8,6 +8,7 @@ module Hipe::SocialSync::Plugins
     Url = 'http://www.tumblr.com/api/write'   # http://www.tumblr.com/docs/api#api_write
     include Hipe::Cli
     include Hipe::SocialSync::Model
+    include Hipe::SocialSync::ControllerCommon    
     DATETIME_RE = '\d\d(?:\d\d)?-\d\d?-\d\d?(?: \d\d?:\d\d(?::\d\d)?)?{0,2}'
     def self.generator_name; 'ADE - slow burn' end
 

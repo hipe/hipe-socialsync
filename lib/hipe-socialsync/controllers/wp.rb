@@ -7,6 +7,7 @@ require 'ostruct'
 module Hipe::SocialSync::Plugins
   class Wp
     include Hipe::Cli
+    include Hipe::SocialSync::ControllerCommon    
     cli.out.klass = Hipe::Io::GoldenHammer
 
     cli.does '-h','--help', 'overview of wp commands'

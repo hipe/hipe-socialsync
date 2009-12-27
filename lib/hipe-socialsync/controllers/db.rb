@@ -4,6 +4,7 @@ module Hipe::SocialSync::Plugins
   class En; extend Hipe::Lingual::En::Helpers; end
   class Db
     include Hipe::Cli
+    include Hipe::SocialSync::ControllerCommon    
     cli.out.klass = Hipe::SocialSync::GoldenHammer
     cli.description = "db stuff"
     cli.default_command = 'help'

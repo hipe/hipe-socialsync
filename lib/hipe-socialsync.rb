@@ -120,5 +120,10 @@ module Hipe
         out
       end
     end
-  end
-end
+    module ControllerCommon
+      def current_user(identifier)
+        Hipe::SocialSync::Model::User.first_or_throw :email=>identifier
+      end
+    end
+  end # SocialSync
+end # Hipe

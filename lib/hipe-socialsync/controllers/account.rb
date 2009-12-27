@@ -2,6 +2,7 @@ module Hipe::SocialSync::Plugins
   class Accounts
     include Hipe::Cli
     include Hipe::SocialSync::Model
+    include Hipe::SocialSync::ControllerCommon
     cli.out.klass = Hipe::SocialSync::GoldenHammer
     cli.description = "manage accounts"
     cli.default_command = 'help'
@@ -15,7 +16,7 @@ module Hipe::SocialSync::Plugins
     }
     def add service_name, current_user_email, name_credential, opts
       out = cli.out.new
-      user_obj = User.first_or_throw :email=>current_user_email
+      user_obj = current_user(current_user_email)
       obj = Account.kreate(service_name, name_credential, user_obj)
       out.puts %{Added #{service_name} account of "#{name_credential}".}
       out
@@ -27,7 +28,7 @@ module Hipe::SocialSync::Plugins
     }
     def list(current_user_email,opts)
       out = cli.out.new
-      user_obj = User.first_or_throw :email=>current_user_email
+      user_obj = current_user(current_user_email)
       accts = Account.all(:user=>user_obj,:order=>[:id.desc])
       out.data.common_template = 'list'
       out.data.list = accts
@@ -43,7 +44,7 @@ module Hipe::SocialSync::Plugins
       required(:current_user_email, 'who are you.')
     }
     def delete(service_name, name_credential, current_user_email, opts=nil)
-      user_obj = User.first_or_throw :email=>current_user_email
+      user_obj = current_user(current_user_email)
       out = cli.out.new
       out << Account.remove(service_name, name_credential, user_obj)
       out

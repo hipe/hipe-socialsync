@@ -2,6 +2,7 @@ module Hipe::SocialSync::Plugins
   class Users
     include Hipe::Cli
     include Hipe::SocialSync::Model
+    include Hipe::SocialSync::ControllerCommon    
     cli.out.klass = Hipe::Io::GoldenHammer
     cli.description = "it's premature to add users, don't you think?"
     cli.does 'help', 'overview of user commands'
@@ -10,9 +11,9 @@ module Hipe::SocialSync::Plugins
       required('email', "any ol' name you want, not an existing name")
       required('admin_email',"the person acting as the admin")
     }
-    def add email, admin_email, opts
+    def add email, current_user_email, opts
       out = cli.out.new
-      admin = User.first_or_throw(:email=>admin_email)
+      admin = current_user(current_user_email)
       response = User.kreate email, admin
       out.puts %{Created user "#{email}". Now there are #{User.count} users.}
       out

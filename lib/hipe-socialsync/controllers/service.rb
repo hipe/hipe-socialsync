@@ -2,6 +2,7 @@ module Hipe::SocialSync::Plugins
   class Services
     include Hipe::Cli
     include Hipe::SocialSync::Model
+    include Hipe::SocialSync::ControllerCommon    
     cli.out.klass = Hipe::SocialSync::GoldenHammer
     cli.description = "manage services"
     cli.default_command = 'help'
@@ -14,7 +15,7 @@ module Hipe::SocialSync::Plugins
     }
     def add name, email, opts
       out = cli.out.new
-      admin = User.first_or_throw :email=>email
+      admin = current_user(email)
       Service.kreate name, admin
       # out.puts %{created service "#{name}". Now there are #{Service.count} services.}
       out.puts %{Created service "#{name}".  Now }+Hipe::Lingual.en{sp(np('service',Service.count))}.say+'.'
@@ -40,7 +41,7 @@ module Hipe::SocialSync::Plugins
     }
     def delete name, current_user_email, opts=nil
       out = cli.out.new
-      out << Service.remove(name, User.first_or_throw(:email=>current_user_email))
+      out << Service.remove(name, current_user(current_user_email))
       out
     end
   end
