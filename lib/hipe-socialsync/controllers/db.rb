@@ -10,25 +10,25 @@ module Hipe::SocialSync::Plugins
     cli.does '-h','--help', 'overview of db commands'
 
     cli.does('init','set up the db for the first time')
-    def init(opts)  
+    def init(opts)  # this is not a constructor it is a command!
       path = cli.parent.application.db_path
       out = cli.out.new
       if File.exist?(path)
-        out.puts %{File already exists: "#{path}."}
-        out.puts %{Consider db:backup and erasing the db?  Nothing accomplished.}
+        out.puts %{File already exists: "#{rel_path(path)}."}
+        out.puts %{You could db:archive and earse the db?  Nothing accomplished.}
       else
-        out.puts %{File didn't exist: "#{path}."}
+        out.puts %{File didn't exist: "#{rel_path(path)}."}
         cli.parent.application.db_connect
-        Hipe::SocialSync::Model.auto_migrate!        
-        if File.exist?(path)        
+        Hipe::SocialSync::Model.auto_migrate!
+        if File.exist?(path)
           out.puts %{Now it exists.}
         else
           out.puts %{Still doesn't exist!?}
         end
       end
       out
-    end    
-    
+    end
+
     cli.does('list','peruse')
     # File.atime(), ctime() etc last seen bcdd7bf10439f3a5744be1a6f4c8ff8db9313f4ae. we wanted ls -lh for file size
     def list(opts=nil)
@@ -37,12 +37,12 @@ module Hipe::SocialSync::Plugins
       o.common_template = 'list'
       o.separator = ' | '
       o.headers = ['path','size','atime','ctime']
-      o.ascii_format_row = lambda{|row| "| %10s | %6s | %14s | %14s |".t(*row) }
-      o.row = lambda{|row| 
+      o.ascii_format_row = lambda{|row| "| %31s | %6s | %17s | %17s |".t(*row) }
+      o.row = lambda{|row|
         dt = DateTime.parse(row[2])
         time = Time.local(dt.year,dt.month, dt.day, dt.hour, dt.min, dt.sec )
         [File.basename(row[0]),
-         row[1], 
+         row[1],
          En.time_ago_in_words(time),
          En.time_ago_in_words(File.ctime(row[0]))]
       }
@@ -54,33 +54,60 @@ module Hipe::SocialSync::Plugins
       o.human_name = 'database file'
       out
     end
-    
-    
-     
-     cli.does('backup', 'experimental') do
-       option('-c','--consistent','output the same thing every time (for testing)')
-       option('-o','--out-file PATH','write backup database to this file')
-     end
-     def backup(opts)
-      filename = db_path
-      begin
-        if (File.exists?(filename))
-          backup = opts.out_file || %{#{filename}.#{DateTime.now.strftime('%Y-%m-%d__%H_%I_%S.db')}}
-          FileUtils.mv(filename,backup)
-          raise "Rotate only works when we have one (:default) adapter" unless
-            DataMapper::Repository.adapters.keys == [:default]
-          DataMapper::Repository.adapters.clear # hack1 -- now that it's not on the filesystem we don't want it here
-          result = %{Moved #{File.basename(filename)} to }+(opts.consistent ? "backup file." : %{#{backup}.})
-          connect!
-          Hipe::SocialSync::Model.auto_migrate
-        else
-          result = %{file #{filename} doesn't exist}
-        end
-      rescue Errno::ENOENT => e
-        result = Exception.upgrade(e)
+
+    cli.does('auto-migrate','erases all of the data from the database. no undo. '+
+     'for now this is only for the test environment.  runs auto_migrate! on each table/resource') do
+       option('-F','this option is required to actually carry out the request')
+    end
+
+    def auto_migrate(opts)
+      raise %{For now this is only used in the test environment, not "#{opts.env}"} unless opts.env == 'test'
+      db_path = cli.parent.application.db_path
+      raise %{Expecting test database path, had "#{rel_path(db_path)}"} unless %r{/test\.db$} =~ db_path
+      out = cli.out.new
+      if (opts[:F])
+        Hipe::SocialSync::Model.auto_migrate!
+        out << %{auto-migrated #{opts.env} db.}
+      else
+        out.errors << "The -F option is required to carry out this request.  Note this will erase "+
+        "the entire #{opts.env} database.  There is no undo.  (Database: #{db_path})"
       end
-      Hipe::Io::GoldenHammer[result]
-      'needs some reworking'
+      out
+    end
+
+    cli.does('archive', 'move the file that the database is in.') do
+      option('-o','--out-file PATH','move the databse to this file') do |it|
+        it.must_not_exist!
+      end
+    end
+    def archive(opts)
+      current_file     = cli.parent.application.db_path
+      destination_file = opts.out_file || %{#{current_file}.#{DateTime.now.strftime('%Y-%m-%d__%H_%I_%S.db')}}
+      out = cli.out.new
+      if ! File.exists?(current_file)
+        out.errors << %{Database file doesn't exist: "#{rel_path(current_file)}"}
+      else
+        cli.parent.application.db_connect
+        stack = repository.adapter.send :connection_stack
+        #if (stack.size > 0)
+        #  connection = stack.last
+        #  adapter = repository.adapter.send(:close_connection,connection)
+        #end
+        DataMapper::Repository.adapters.delete(:default) # hackland
+        # connection = repository.adapter.send(:open_connection)
+        FileUtils.mv(current_file,destination_file)
+        out << %{Moved #{rel_path(current_file)} to #{rel_path(destination_file)}}
+      end
+      out
+    end
+    def rel_path(path)
+      pwd = Hipe::SocialSync::DIR  # FileUtils.pwd
+      re = Regexp.new %{^#{Regexp.escape pwd}/(.+)}
+      if (md = re.match(path))
+        md[1]
+      else
+        path
+      end
     end
   end
 end

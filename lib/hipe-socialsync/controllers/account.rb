@@ -2,10 +2,10 @@ module Hipe::SocialSync::Plugins
   class Accounts
     include Hipe::Cli
     include Hipe::SocialSync::Model
-    cli.out.class = Hipe::SocialSync::GoldenHammer
+    cli.out.klass = Hipe::SocialSync::GoldenHammer
     cli.description = "manage accounts"
     cli.default_command = 'help'
-    cli.does '-h','--help'
+    cli.does '-h','--help', 'overview of account commands'
 
     cli.does(:add, "add an account"){
       option('-h',&help)

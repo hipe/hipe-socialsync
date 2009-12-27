@@ -1,18 +1,17 @@
+# hipe-cli gentest spec/gentest-screenshots/*
 # hipe-cli gentest spec/gentest-screenshots/accounts.screenshots
 # This is a gentest file for use with hipe-cli gentest.
 {
-"prompt":"~/d > ",
+"requires":["hipe-socialsync","bacon","hipe-core/test/bacon-extensions"],
 "describe":"account tests",
-"klass":"Hipe::SocialSync::App",
-"requires":["hipe-socialsync","hipe-core/test/bacon-extensions"],
+"construct":"Hipe::SocialSync::App.new(['-e','test'])",
+"letter":"a",
 "run_with":"app",
-"chomp":true,
-"letter":"a"
+"prompt":"~/d > "
 }
 
-~/d > sosy db-rotate -c
-moved dev.db to backup file.
-
+~/d > sosy db:auto-migrate -F
+auto-migrated test db.
 
 ~/d > sosy accounts:list -h
 accounts:list - show all accounts
@@ -20,17 +19,13 @@ accounts:list - show all accounts
 Usage: sosy accounts:list [-h] current_user_email
     -h
         current_user_email           the email of the current user
-        
-
 
 ~/d > sosy accounts:list 
 There is one missing required argument: current_user_email
 See "sosy accounts:list -h" for more info.
 
-
 ~/d > sosy accounts:list  admin@admin
 0 accounts
-
 
 ~/d > sosy accounts:add wordprez admin@admin imauser
 Can't find service with name "wordprez".
@@ -45,8 +40,8 @@ Added wordprez account of "imauser".
 Added wordprez account of "imauser2".
 
 ~/d > sosy accounts:list admin@admin
-2               wordprez            imauser2
-1               wordprez             imauser
+2                 wordprez             imauser2
+1                 wordprez              imauser
 2 accounts
 
 ~/d > sosy accounts:delete wordprez imauser2 admin@admin

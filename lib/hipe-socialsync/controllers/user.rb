@@ -2,9 +2,9 @@ module Hipe::SocialSync::Plugins
   class Users
     include Hipe::Cli
     include Hipe::SocialSync::Model
-    cli.out.class = Hipe::Io::GoldenHammer
+    cli.out.klass = Hipe::Io::GoldenHammer
     cli.description = "it's premature to add users, don't you think?"
-    cli.does 'help'
+    cli.does 'help', 'overview of user commands'
     cli.does(:add, "add a user to the list"){
       option('-h',&help)
       required('email', "any ol' name you want, not an existing name")

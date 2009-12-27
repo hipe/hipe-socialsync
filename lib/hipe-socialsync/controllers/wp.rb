@@ -7,9 +7,9 @@ require 'ostruct'
 module Hipe::SocialSync::Plugins
   class Wp
     include Hipe::Cli
-    cli.out.class = Hipe::Io::GoldenHammer
+    cli.out.klass = Hipe::Io::GoldenHammer
 
-    cli.does '-h','--help'
+    cli.does '-h','--help', 'overview of wp commands'
     cli.default_command = :help
 
     cli.does(:pull,'parse wordpress xml into database.') {

@@ -10,21 +10,14 @@ end
 
 module Hipe::SocialSync::Model
 
-  def self.auto_migrate # expected to by called by app maybe on a before-run hook and after db-rotate
-    repo = DataMapper.repository
-    unless repo.storage_exists?('relationships'); Relationship.auto_migrate! end
-    unless repo.storage_exists?('events');        Event       .auto_migrate! end
-    unless repo.storage_exists?('accounts');      Account     .auto_migrate! end
-    unless repo.storage_exists?('items');         Item        .auto_migrate! end
-    unless repo.storage_exists?('users')
-      User.auto_migrate!
-      User.create_or_throw(:email=>'admin@admin')
-    end
-    unless repo.storage_exists?('services')
-      Service.auto_migrate!
-      Service.create(:name => 'wordpress')
-      Service.create(:name => 'tumblr')
-    end
+  def self.auto_migrate! # expected to by called by app maybe on a before-run hook and after db-rotate
+    classes = DataObjectCommon.classes
+    classes.each {|klass| klass.auto_migrate! }
+    User.create_or_throw(:email=>'admin@admin')
+    Service.create_or_throw(:name => 'wordpress')
+    Service.create_or_throw(:name => 'tumblr')
+    # repo = DataMapper.repository
+    # repo.storage_exists?('relationships'); Relationship.auto_migrate! end
   end # def auto_migrate
 
   class ValidationError
@@ -49,7 +42,7 @@ module Hipe::SocialSync::Model
       if (String===args[0] && (args.size==1 or args.size==2 && Hash===args[1]))
         ret = self.new
         ret.errors << ValidationError.new(args[0],args[1])
-      elsif (1==args.size and CommonDataObject===args[0])
+      elsif (1==args.size and DataObjectCommon===args[0])
         object = args[0]
         raise ArgumentError.new("object must be invalid") if object.valid?
         ret = self.new
@@ -88,15 +81,20 @@ module Hipe::SocialSync::Model
     end
   end
 
-  module CommonDataObject
+  module DataObjectCommon
     include DataMapper::Types
+    @classes = []
+    class << self
+      attr_reader :classes
+    end
     def self.included(model)
-      model.extend CommonDataObjectClassMethods
+      model.extend DataObjectCommonClassMethods
       model.property :id, Serial
+      @classes << model
     end
   end
 
-  module CommonDataObjectClassMethods
+  module DataObjectCommonClassMethods
     def human_name
       Inflector.humanize(self.to_s)
     end
@@ -139,7 +137,7 @@ module Hipe::SocialSync::Model
 
   class Relationship
     include DataMapper::Resource
-    include CommonDataObject
+    include DataObjectCommon
     property :type, String, :length => (2..40)
     property :left_class, String, :length => (2..50)
     property :left_id, Integer, :required => true
@@ -147,8 +145,8 @@ module Hipe::SocialSync::Model
     property :right_id, Integer, :required => true
 
     def self.kreate left, type, right
-      assert_kind_of :left, left, CommonDataObject
-      assert_kind_of :left, right, CommonDataObject
+      assert_kind_of :left, left, DataObjectCommon
+      assert_kind_of :left, right, DataObjectCommon
       assert_kind_of :type, type, Symbol
 
       obj = self.new  :left_class  => left.class.to_s,  :right_class => right.class.to_s,
@@ -161,7 +159,7 @@ module Hipe::SocialSync::Model
 
   class Event
     include DataMapper::Resource
-    include CommonDataObject
+    include DataObjectCommon
     property :type, String, :length => (2..60)
     property :happened_at, DateTime, :required => true
 
@@ -178,7 +176,7 @@ module Hipe::SocialSync::Model
 
   class User
     include DataMapper::Resource
-    include CommonDataObject
+    include DataObjectCommon
 
     property :email, String, :length=>(1..80), :format => :email_address, :unique => true,
       :messages => {
@@ -207,7 +205,7 @@ module Hipe::SocialSync::Model
 
   class Service
     include DataMapper::Resource
-    include CommonDataObject
+    include DataObjectCommon
 
     has n, :accounts
     property :name, String, :length=>(2..20), :unique => true,
@@ -232,7 +230,7 @@ module Hipe::SocialSync::Model
 
   class Account
     include DataMapper::Resource
-    include CommonDataObject
+    include DataObjectCommon
 
     belongs_to :user
     belongs_to :service
@@ -265,7 +263,7 @@ module Hipe::SocialSync::Model
 
   class Item
     include DataMapper::Resource
-    include CommonDataObject
+    include DataObjectCommon
 
     belongs_to :account
     property :foreign_id, Integer, :required => true
@@ -318,7 +316,7 @@ module Hipe::SocialSync::Model
 
   #class UploadedFile
   #  include DataMapper::Resource
-  #  include CommonDataObject
+  #  include DataObjectCommon
   #end
 
 

@@ -1,17 +1,18 @@
+# hipe-cli gentest spec/gentest-screenshots/*
 # hipe-cli gentest spec/gentest-screenshots/services.screenshots
 # This is a gentest file for use with hipe-cli gentest.
 {
-"prompt":"~/d > ",
-"describe":"service tests",
-"klass":"Hipe::SocialSync::App",
 "requires":["hipe-socialsync"],
+"describe":"service tests",
+"construct":"Hipe::SocialSync::App.new(['-e','test'])",
+"letter":"s",
 "run_with":"app",
-"chomp":true,
-"letter":"s"
+"prompt":"~/d > "
 }
 
-~/d > sosy db-rotate -c
-moved dev.db to backup file.
+~/d > sosy db:auto-migrate -F
+auto-migrated test db.
+
 ~/d > sosy services:add -h
 services:add - add a service to the list
 
@@ -21,10 +22,10 @@ Usage: sosy services:add [-h] name current_user_email
         current_user_email           the email of the person adding this service
 ~/d > sosy services:add eraseme admin@admin
 Created service "eraseme".  Now there are three services.
-~/d > sosy services:list 
-3                 eraseme
-2                  tumblr
-1               wordpress
+~/d > sosy -e test services:list
+3                  eraseme
+2                   tumblr
+1                wordpress
 3 services
 ~/d > sosy services:delete notthere admin@admin
 Can't find service with name "notthere".

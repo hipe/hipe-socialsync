@@ -1,0 +1,37 @@
+# hipe-cli gentest spec/gentest-screenshots/*
+# hipe-cli gentest spec/gentest-screenshots/bbb-db.screenshots
+# This is a gentest file for use with hipe-cli gentest.
+{
+"requires":["hipe-socialsync","bacon","hipe-core/test/bacon-extensions"],
+"describe":"bbb-db tests",
+"construct":"Hipe::SocialSync::App.new(['-e','test'])",
+"letter":"bbb-db",
+"run_with":"app",
+"prompt":"~/d > "
+}
+
+
+~/d > sosy db:archive
+#! start code
+  x.to_s.should.match %r{^moved [^ ]+ to|database file doesn't exist}i
+#! end code
+
+~/d > sosy db:archive
+#! start code
+  x.to_s.should.match %r{^database file doesn't exist}i
+#! end code
+
+~/d > sosy db:init
+#! start code
+  x.to_s.should.match %r{still doesn't exist}i
+#! end code
+
+~/d > sosy db:init
+#! start code
+  x.to_s.should.match %r{still doesn't exist}i
+#! end code
+
+~/d > sosy db:list
+#! start code
+  x.to_s.should.match %r{path.+size.+atime.+ctime}i
+#! end code

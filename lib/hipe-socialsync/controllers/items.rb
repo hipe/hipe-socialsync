@@ -4,9 +4,9 @@ module Hipe::SocialSync::Plugins
     include Hipe::Cli
     include Hipe::AsciiTypesetting::Methods
     include Hipe::SocialSync::Model
-    cli.out.class = Hipe::SocialSync::GoldenHammer
+    cli.out.klass = Hipe::SocialSync::GoldenHammer
     cli.description = "blog entries"
-    cli.does 'help'
+    cli.does 'help','overview of item commands'
     cli.does(:add, "add an entry and asociate it w/ an account") do
        option('-h','--help',&help)
        required('service-name')

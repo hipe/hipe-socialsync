@@ -1,30 +1,25 @@
+# hipe-cli gentest spec/gentest-screenshots/*
 # hipe-cli gentest spec/gentest-screenshots/users.screenshots
 # This is a gentest file for use with hipe-cli gentest.
-#
-# 
-
 {
-"prompt":"~/d > ",
-"describe":"user tests",
-"klass":"Hipe::SocialSync::App",
 "requires":["hipe-socialsync"],
+"describe":"user tests",
+"construct":"Hipe::SocialSync::App.new(['-e','test'])",
+"letter":"u",
 "run_with":"app",
-"chomp":true,
-"letter":"u"
+"prompt":"~/d > "
 }
 
-# bad plugin name
-~/d > sosy db:rotate
-Unrecognized plugin "db". Known plugins are "accounts", "item", "services", "users" and "wp"
+# sosy auto-migrate -F
+~/d > sosy db:auto-migrate -F
+auto-migrated test db.
 
-# move database.
-~/d > sosy db-rotate -c
-moved dev.db to backup file.
 
 # list from beginning
 ~/d > sosy users:list
 1               admin@admin
 (1 users)
+
 
 # add with missing parameters
 ~/d > sosy users:add
@@ -41,8 +36,10 @@ Usage: sosy users:add [-h] email admin_email
 
 # extra argument
 ~/d > sosy users:add blah blah blah
-there is one unexpected argument: "blah": 
-See "sosy users:add -h" for more info.
+#! start code
+  x.to_s.should.match Regexp.new('there is one unexpected argument: "blah": {1}'<<"\n"<<
+  'See "sosy users:add -h" for more info\.$')
+#! end code
 
 # bad admin email
 ~/d > sosy users:add blah blah
@@ -86,8 +83,10 @@ Usage: sosy users:delete [-h] email admin
         
 # delete with too many arguments
 ~/d > sosy users:delete blah blah blah
-there is one unexpected argument: "blah": 
-See "sosy users:delete -h" for more info.
+#! start code
+  x.to_s.should.match Regexp.new( '^there is one unexpected argument: "blah": {1}'<<"\n"<<
+   'See "sosy users:delete -h" for more info\.$')
+#! end code
 
 # delete user
 ~/d > sosy users:delete mark2@mark admin@admin

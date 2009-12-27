@@ -2,10 +2,10 @@ module Hipe::SocialSync::Plugins
   class Services
     include Hipe::Cli
     include Hipe::SocialSync::Model
-    cli.out.class = Hipe::SocialSync::GoldenHammer
+    cli.out.klass = Hipe::SocialSync::GoldenHammer
     cli.description = "manage services"
     cli.default_command = 'help'
-    cli.does '-h','--help'
+    cli.does '-h','--help', 'overview of service commands'
 
     cli.does(:add, "add a service to the list"){
       option('-h',&help)

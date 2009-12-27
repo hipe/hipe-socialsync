@@ -1,0 +1,47 @@
+# hipe-cli gentest spec/gentest-screenshots/*
+# hipe-cli gentest spec/gentest-screenshots/aaa-db.screenshots
+# This is a gentest file for use with hipe-cli gentest.
+{
+"requires":["hipe-socialsync","bacon","hipe-core/test/bacon-extensions"],
+"describe":"db tests",
+"construct":"Hipe::SocialSync::App.new(['-e','test'])",
+"letter":"db",
+"run_with":"app",
+"prompt":"~/d > "
+}
+
+
+~/d > sosy db:archive
+#! start code
+  x.to_s.should.match %r{^moved [^ ]+ to|database file doesn't exist}i
+#! end code
+
+~/d > sosy db:archive
+#! start code
+  x.to_s.should.match %r{^database file doesn't exist}i
+#! end code
+
+~/d > sosy db:init
+#! start code
+  x.to_s.should.match %r{now it exists}i
+#! end code
+
+~/d > sosy db:init
+#! start code
+  x.to_s.should.match %r{file already exists}i
+#! end code
+
+~/d > sosy db:archive -o 'data/test.db'
+#! start code
+  x.to_s.should.match %r{File must not exist}i
+#! end code
+
+~/d > sosy db:list
+#! start code
+  x.to_s.should.match %r{path.+size.+atime.+ctime}i
+#! end code
+
+~/d > sosy db:auto-migrate
+#! start code
+  x.to_s.should.match %r{The -F option is required to carry out this request}i
+#! end code

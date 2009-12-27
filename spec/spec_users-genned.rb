@@ -3,7 +3,7 @@ require 'hipe-socialsync'
 
 
 # You may not want to edit this file.  It was generated from data in "users.screenshots"
-# by hipe-cli gentest on 2009-12-25 06:25.
+# by hipe-cli gentest on 2009-12-27 05:31.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -13,35 +13,18 @@ require 'hipe-socialsync'
 # an achieve your success that way.  It's really that simple.
 
 
-describe "Generated test (generated tests)" do
+describe "User tests (generated tests)" do
 
-  it "# bad plugin name (u-0)" do
-    @app = Hipe::SocialSync::App.new
-    x = @app.run(["db:rotate"])
+  it "# sosy auto-migrate -F (u-0)" do
+    @app = Hipe::SocialSync::App.new(['-e','test']) 
+    x = @app.run(["db:auto-migrate", "-F"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
-    Unrecognized plugin "db". Known plugins are "accounts", "item", "services", "users" and "wp"
+    auto-migrated test db.
     __HERE__
     x.to_s.chomp.should.equal y
   end
 
-  it "# bad plugin name (u-0.5)" do
-    @app = Hipe::SocialSync::App.new
-    x = @app.run(["db:rotate"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Unrecognized plugin "db". Known plugins are "accounts", "item", "services", "users" and "wp"
-    __HERE__
-    x.to_s.chomp.should.equal y
-  end
-
-  it "# move database. (u-1)" do
-    x = @app.run(["db-rotate", "-c"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    moved dev.db to backup file.
-    __HERE__
-    x.to_s.chomp.should.equal y
-  end
-
-  it "# list from beginning (u-2)" do
+  it "# list from beginning (u-1)" do
     x = @app.run(["users:list"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     1               admin@admin
@@ -50,7 +33,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# add with missing parameters (u-3)" do
+  it "# add with missing parameters (u-2)" do
     x = @app.run(["users:add"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     There are two missing required arguments: email and admin_email
@@ -59,11 +42,11 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "sosy users:add -h (u-4)" do
+  it "sosy users:add -h (u-3)" do
     x = @app.run(["users:add", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     users:add - add a user to the list
-
+    
     Usage: sosy users:add [-h] email admin_email
         -h
             email                        any ol' name you want, not an existing name
@@ -72,16 +55,13 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# extra argument (u-5)" do
+  it "# extra argument (u-4)" do
     x = @app.run(["users:add", "blah", "blah", "blah"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    there is one unexpected argument: "blah":
-    See "sosy users:add -h" for more info.
-    __HERE__
-    x.to_s.chomp.should.equal y
+    x.to_s.should.match Regexp.new('there is one unexpected argument: "blah": {1}'<<"\n"<<
+    'See "sosy users:add -h" for more info\.$')
   end
 
-  it "# bad admin email (u-6)" do
+  it "# bad admin email (u-5)" do
     x = @app.run(["users:add", "blah", "blah"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     Can't find user with email "blah".
@@ -89,7 +69,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# bad email format (u-7)" do
+  it "# bad email format (u-6)" do
     x = @app.run(["users:add", "blah", "admin@admin"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     "blah" is not a valid email address.
@@ -97,7 +77,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# add user (u-8)" do
+  it "# add user (u-7)" do
     x = @app.run(["users:add", "mark@mark", "admin@admin"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     Created user "mark@mark". Now there are 2 users.
@@ -105,7 +85,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# list users (u-9)" do
+  it "# list users (u-8)" do
     x = @app.run(["users:list"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     1               admin@admin
@@ -115,7 +95,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# add again (u-10)" do
+  it "# add again (u-9)" do
     x = @app.run(["users:add", "mark2@mark", "admin@admin"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     Created user "mark2@mark". Now there are 3 users.
@@ -123,7 +103,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# add with already used name (u-11)" do
+  it "# add with already used name (u-10)" do
     x = @app.run(["users:add", "mark@mark", "admin@admin"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     There is already a user "mark@mark".
@@ -131,7 +111,7 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# delete with missing args (u-12)" do
+  it "# delete with missing args (u-11)" do
     x = @app.run(["users:delete"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     There are two missing required arguments: email and admin
@@ -140,11 +120,11 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# delete -h (u-13)" do
+  it "# delete -h (u-12)" do
     x = @app.run(["users:delete", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     users:delete - delete user accounts
-
+    
     Usage: sosy users:delete [-h] email admin
         -h
             email
@@ -153,16 +133,13 @@ describe "Generated test (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# delete with too many arguments (u-14)" do
+  it "# delete with too many arguments (u-13)" do
     x = @app.run(["users:delete", "blah", "blah", "blah"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    there is one unexpected argument: "blah":
-    See "sosy users:delete -h" for more info.
-    __HERE__
-    x.to_s.chomp.should.equal y
+    x.to_s.should.match Regexp.new( '^there is one unexpected argument: "blah": {1}'<<"\n"<<
+     'See "sosy users:delete -h" for more info\.$')
   end
 
-  it "# delete user (u-15)" do
+  it "# delete user (u-14)" do
     x = @app.run(["users:delete", "mark2@mark", "admin@admin"])
     y = "Deleted user \"mark2@mark\" (#3)."
     x.to_s.chomp.should.equal y
