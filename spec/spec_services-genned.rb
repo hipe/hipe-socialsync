@@ -16,7 +16,7 @@ require 'hipe-socialsync'
 describe "Service tests (generated tests)" do
 
   it "sosy db:auto-migrate -F (s-0)" do
-    @app = Hipe::SocialSync::App.new(['-e','test']) 
+    @app = Hipe::SocialSync::App.new(['-e','test'])
     x = @app.run(["db:auto-migrate", "-F"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     auto-migrated test db.
@@ -28,7 +28,7 @@ describe "Service tests (generated tests)" do
     x = @app.run(["services:add", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     services:add - add a service to the list
-    
+
     Usage: sosy services:add [-h] name current_user_email
         -h
             name                         any ol' name you want, not an existing name

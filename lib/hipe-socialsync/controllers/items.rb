@@ -47,5 +47,17 @@ module Hipe::SocialSync::Plugins
       end
       out
     end
+
+    cli.does(:delete, "remove the reflection of the item") do
+      option('-h',&help)
+      required('item_id')
+      required('current_user_email')
+    end
+    def delete(id,current_user_email,opts)
+      user = User.first_or_throw(:email=>current_user_email)
+      out = cli.out.new
+      out << Item.remove(id, user)
+      out
+    end
   end
 end

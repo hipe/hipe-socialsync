@@ -1,5 +1,6 @@
 == 0.0.4 is the version you are working on now
-  * spec for users
+  * introduce one_word
+  * spec for users, accounts, service, items
   * come up with testing strategy
   * get hipe-core and hipe-cli caught up
 == 0.0.3 is: 2009-10-15 

@@ -18,7 +18,7 @@ require 'hipe-core/test/bacon-extensions'
 describe "Db tests (generated tests)" do
 
   it "sosy db:archive (db-0)" do
-    @app = Hipe::SocialSync::App.new(['-e','test']) 
+    @app = Hipe::SocialSync::App.new(['-e','test'])
     x = @app.run(["db:archive"])
     x.to_s.should.match %r{^moved [^ ]+ to|database file doesn't exist}i
   end

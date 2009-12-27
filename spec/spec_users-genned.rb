@@ -16,7 +16,7 @@ require 'hipe-socialsync'
 describe "User tests (generated tests)" do
 
   it "# sosy auto-migrate -F (u-0)" do
-    @app = Hipe::SocialSync::App.new(['-e','test']) 
+    @app = Hipe::SocialSync::App.new(['-e','test'])
     x = @app.run(["db:auto-migrate", "-F"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     auto-migrated test db.
@@ -46,7 +46,7 @@ describe "User tests (generated tests)" do
     x = @app.run(["users:add", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     users:add - add a user to the list
-    
+
     Usage: sosy users:add [-h] email admin_email
         -h
             email                        any ol' name you want, not an existing name
@@ -124,7 +124,7 @@ describe "User tests (generated tests)" do
     x = @app.run(["users:delete", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     users:delete - delete user accounts
-    
+
     Usage: sosy users:delete [-h] email admin
         -h
             email

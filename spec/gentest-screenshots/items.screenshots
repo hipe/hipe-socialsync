@@ -1,0 +1,95 @@
+# hipe-cli gentest spec/gentest-screenshots/*
+# hipe-cli gentest spec/gentest-screenshots/items.screenshots
+# This is a gentest file for use with hipe-cli gentest.
+{
+"requires":["hipe-socialsync"],
+"describe":"item tests",
+"construct":"Hipe::SocialSync::App.new(['-e','test'])",
+"letter":"i",
+"run_with":"app",
+"prompt":"~/d > ",
+"chomp":true
+}
+
+~/d > sosy db:auto-migrate -F
+#! start code
+  x.valid?.should.equal true
+#! end code
+
+~/d > sosy items:add -h
+items:add - add an entry and asociate it w/ an account
+
+Usage: sosy items:add [-h|--help] service_name name_credential foreign_id author content_str keywords_str published_at status title current_user_email
+    -h, --help
+        service-name
+        name-credential
+        foreign-id
+        author
+        content-str
+        keywords-str
+        published_at
+        status
+        title
+        current_user_email
+
+
+# add item wrong service name
+~/d > sosy items:add wordpresz doofis 123 me  "i am a blog entry" 'kw1,kw2,kw3' '2008-01-02' 'published' 'my cat' admin@admin
+Can't find service with name "wordpresz".
+
+# add item no such account
+~/d > sosy items:add wordpress doofis 123 me  "i am a blog entry" 'kw1,kw2,kw3' '2008-01-02' 'published' 'my cat' admin@admin
+Can't find account with name_credential "doofis" and service "wordpress" and user "admin@admin".
+
+# add account with everything ok
+~/d > sosy accounts:add wordpress admin@admin imauser
+Added wordpress account of "imauser".
+
+# add item with everything ok
+~/d > sosy items:add wordpress imauser 123 some-other-author "i am a blog entry" 'kw1,kw2,kw3' '2008-01-02' 'published' 'my cat' admin@admin
+Added blog entry (ours: #1, theirs: #123).
+
+# add same item again and FAIL
+~/d > sosy items:add wordpress imauser 123 some-other-author "i am a blog entry" 'kw1,kw2,kw3' '2008-01-02' 'published' 'my cat' admin@admin
+Md5 "7d9ad782a0a270d410bea8b81569e6c5" is already taken.  Another blog entry (#123) from 2008-01-02 already has that content.  You already have another wordpress blog entry in the "imauser" account with that foreign id (#123).
+
+# add another
+~/d > sosy items:add wordpress imauser 124 some-other-author "i am a blog entry again" 'kw1,kw2,kw3' '2008-01-02' 'published' 'my cat' admin@admin
+Added blog entry (ours: #2, theirs: #124).
+
+~/d > sosy items:list admin@admin
+1     2008-01-02 00:00:00 wordpress    some-other-author              i am a blog entry
+2     2008-01-02 00:00:00 wordpress    some-other-author        i am a blog entry again
+2 items
+
+~/d > sosy items:delete -h
+items:delete - remove the reflection of the item
+
+Usage: sosy items:delete [-h] item_id current_user_email
+    -h
+        item_id
+        current_user_email
+
+
+~/d > sosy items:delete  blah adminz
+Can't find user with email "adminz".
+
+~/d > sosy items:delete  blah admin@admin
+Can't find item with id "blah".
+
+~/d > sosy items:delete 1 admin@admin
+Removed the reflection of the item "my cat".
+
+~/d > sosy users:add temp@user admin@admin
+Created user "temp@user". Now there are 2 users.
+
+~/d > sosy accounts:add wordpress temp@user meeee
+Added wordpress account of "meeee".
+
+# other user adds item
+~/d > sosy items:add wordpress meeee 789 the-author "i am a blog entry" '' '2008-01-03' 'published' 'my dog' temp@user
+Added blog entry (ours: #3, theirs: #789).
+
+~/d > sosy items:delete 3 admin@admin
+That item doesn't belong to you.
+

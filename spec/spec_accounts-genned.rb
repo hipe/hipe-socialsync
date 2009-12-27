@@ -18,7 +18,7 @@ require 'hipe-core/test/bacon-extensions'
 describe "Account tests (generated tests)" do
 
   it "sosy db:auto-migrate -F (a-0)" do
-    @app = Hipe::SocialSync::App.new(['-e','test']) 
+    @app = Hipe::SocialSync::App.new(['-e','test'])
     x = @app.run(["db:auto-migrate", "-F"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     auto-migrated test db.
@@ -30,7 +30,7 @@ describe "Account tests (generated tests)" do
     x = @app.run(["accounts:list", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     accounts:list - show all accounts
-    
+
     Usage: sosy accounts:list [-h] current_user_email
         -h
             current_user_email           the email of the current user

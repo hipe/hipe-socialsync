@@ -43,7 +43,7 @@ task :bacon do
   require 'scanf'
   require 'matrix'
 
-  specs = FileList[RakefileConfig[:spec][:bacon][:pattern]]
+  specs = FileList[RakefileConfig[:spec][:bacon][:patterns][0]]
 
   some_failed = false
   specs_size = specs.size

@@ -3,6 +3,7 @@ require 'dm-validations'
 require 'dm-aggregates'
 require 'md5'
 require 'hipe-core/infrastructure/erroneous'
+require 'hipe-core/lingual/ascii-typesetting'
 
 repository(:default).adapter.resource_naming_convention = lambda do |value|
   /[^:]+$/.match(value)[0].gsub(/([a-z])([A-Z])/,'\1_\2').downcase + 's'
@@ -92,9 +93,25 @@ module Hipe::SocialSync::Model
       model.property :id, Serial
       @classes << model
     end
+    def one_word
+      if self.class.in_a_word
+        send(self.class.in_a_word).inspect
+      elsif respond_to? :name
+        name.inspect
+      else
+        %{##{id.inspect}}
+      end
+    end
   end
 
   module DataObjectCommonClassMethods
+    def in_a_word(attr=nil)
+      if (attr)
+        @in_a_word = attr
+      else
+        @in_a_word
+      end
+    end
     def human_name
       Inflector.humanize(self.to_s)
     end
@@ -110,8 +127,14 @@ module Hipe::SocialSync::Model
     def first_or_throw *args
       ret = nil
       return ret if ret = first(*args)
-      msg = %{Can't find #{human_name} with } + # makes some assumptions about how args look!
-        ( args[0].map{|pair|  %{#{Inflector.humanize(pair[0])} #{pair[1].inspect}}} * ' and ' ) + '.'
+      hash = args[0]#  makes some assumptions about how args look!
+      keys = hash.keys.map{|x| x.to_s}.sort
+      msg = %{Can't find #{human_name} with } +
+        ( keys.map do |k|
+            thing = hash[k.to_sym]
+            one_word = thing.respond_to?(:one_word) ? thing.one_word : thing.inspect
+            %{#{Inflector.humanize(k)} #{one_word}}
+        end * ' and ' ) + '.'
       throw :invalid, ValidationErrors[msg]
     end
     def to_time_or_throw(mixed)
@@ -120,7 +143,7 @@ module Hipe::SocialSync::Model
         datetime = DateTime.parse(mixed)
         return datetime
       rescue ArgumentError => e
-        throw :invalid, ValidationErrors[%{#{e.message}: #{mixed.inspect}}, {:original_exception=>e}]
+        throw :invalid, ValidationErrors[%{#{e.message.capitalize}: #{mixed.inspect}}, {:original_exception=>e}]
       end
     end
     def kind_of_or_throw(name, value, *klasses)
@@ -129,7 +152,8 @@ module Hipe::SocialSync::Model
       msg = if (value.nil?)
         %{#{name} not found.}.capitalize
       else
-        %{#{name} should be #{should_be} but was #{Inflector.class_basename(value.class)}}
+        (%{#{name} should be #{should_be} but was }<<
+         %{#{Inflector.humanize(value.class)}.}).capitalize
       end
       throw :invalid, ValidationErrors[msg]
     end
@@ -177,6 +201,7 @@ module Hipe::SocialSync::Model
   class User
     include DataMapper::Resource
     include DataObjectCommon
+    in_a_word :email
 
     property :email, String, :length=>(1..80), :format => :email_address, :unique => true,
       :messages => {
@@ -264,6 +289,7 @@ module Hipe::SocialSync::Model
   class Item
     include DataMapper::Resource
     include DataObjectCommon
+    include Hipe::AsciiTypesetting::Methods
 
     belongs_to :account
     property :foreign_id, Integer, :required => true
@@ -275,10 +301,10 @@ module Hipe::SocialSync::Model
     property :status, String
     property :title, String, :length => (1..80)
     validates_is_unique :content_md5, :scope => :account_id,
-      :message => lambda{|res,prop| %{md5 "%s" is already taken.}.t(res.send(prop.name))}
+      :message => lambda{|res,prop| %{Md5 "%s" is already taken.}.t(res.send(prop.name))}
     validates_is_unique :content, :scope => :account_id,
       :message => lambda { |res,prop|
-        %{Another blog entry (#%s) from %s already has that content}.t(
+        %{Another blog entry (#%s) from %s already has that content.}.t(
           res.foreign_id, res.published_at.strftime('%Y-%m-%d')
         )
       }
@@ -288,6 +314,8 @@ module Hipe::SocialSync::Model
           o.account.service.name, o.account.name_credential, o.send(prop.name)
         )
       }
+
+    def one_word; truncate(title,15).inspect end
 
     def self.kreate(account_obj, foreign_id, author_str, content_str,
          keywords_str, published_at, status, title, current_user_obj)
@@ -309,9 +337,22 @@ module Hipe::SocialSync::Model
         :title          => title
       )
       obj.save or throw :invalid, ValidationErrors[obj]
-      Event.kreate(:item_imported, :item=>obj, :account=>account_obj, :by=>current_user_obj)
+      Event.kreate(:item_reflection_added, :item=>obj, :account=>account_obj, :by=>current_user_obj)
       obj
     end
+
+    def self.remove(id, user_obj)
+      assert_kind_of :user, user_obj, User
+      item = Item.first_or_throw(:id => id)
+      unless (item.account.user == user_obj)
+        throw :invalid, ValidationErrors["That item doesn't belong to you."]
+      end
+      item.destroy!
+      Event.kreate :item_reflection_deleted, :item=>item, :by=>user_obj
+      %{Removed the reflection of the item #{item.one_word}.}
+    end
+
+
   end
 
   #class UploadedFile

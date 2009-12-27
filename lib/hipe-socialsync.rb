@@ -91,7 +91,7 @@ module Hipe
 
       def db_connect
         return false if DataMapper::Repository.adapters.size > 0
-        connect_string = cli.config.db[@univ.env]        
+        connect_string = cli.config.db[@univ.env]
         DataMapper.setup(:default, connect_string)
         require 'hipe-socialsync/model'
       end
@@ -105,7 +105,7 @@ module Hipe
         argv.unshift(*@prepend)
         return catch(:invalid) { cli.run(argv) } # return either the ValidationError or the result
       end
-      
+
       cli.does('ping','the minimal action') do
         option('--db','try connecting')
       end
@@ -116,7 +116,7 @@ module Hipe
         if (opts.db)
           db_connect
           out << %{  My database file is "#{File.basename(db_path)}".}
-        end        
+        end
         out
       end
     end
