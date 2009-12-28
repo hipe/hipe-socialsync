@@ -21,7 +21,10 @@ module Hipe::SocialSync::Plugins
        required('title')
        required('current_user_email')
     end
-    def add(service_name, name_credential, foreign_id, author, content, keywords_str,published_at,status,title,user_email,o)
+    def add(service_name, name_credential, foreign_id, 
+            author, content, keywords_str,
+            published_at, status, title, 
+            user_email, o)
       out = cli.out.new
       user = current_user(user_email)
       svc = Service.first_or_throw(:name=>service_name)
@@ -32,31 +35,59 @@ module Hipe::SocialSync::Plugins
     end
 
     cli.does(:list, "show some items") do
+      option('-h',&help)
+      option('-m','--mine')
+      option('-s','--service NAME','items to delete must be from this service [and...]')
+      option('-n','--name-credential NAME','items to delete must be from the account with this username [and...]')
       required('current_user_email')
     end
-    def list(current_user_email,*args)
+    def list(current_user_email,opts)
       user = current_user(current_user_email)
-      out = cli.out.new
-      out.data.common_template = 'list'
-      out.data.list = Item.all :order => [:published_at.desc]
-      out.data.klass = Item
-      out.data.header = ['id','published at','service name','author name','content']
-      out.data.row = lambda do |x|
-        ['%-5d'.t(x.id), '%10s'.t(x.published_at.strftime('%Y-%m-%d %H:%M:%S')),
-          '%8s'.t(x.account.service.name), '%20s'.t(x.author), '%30s'.t(truncate(x.content,27))
-        ]
+      if ( x = [:service,:name_credential] & opts.keys ).size > 0 and ! opts.all
+        raise ArgumentError.new(%{to use #{x.map{|y| %{"#{y}"}}*' and '} please indicate "--all"})
+      end      
+      throw :invalid, ValidationErrors[%{If you indicate a name_credential please indicate a service}] if 
+        (opts.name_credential && ! opts.service)
+            
+      items = Item.all(:order => [:published_at.desc])
+      if (opts.mine)
+        items = Item.of_user(user)
       end
+      if (opts.service)
+        svc = Service.first_or_throw(:name => opts.service)
+        if (opts.name_credential)
+          acct = Account.first_or_throw(:service=>svc)
+          items = items.of_account(acct)
+        else
+          items = items.of_service(svc)
+        end
+      end
+      
+      out.data.common_template = 'list'
+      out.data.list = items
+      out.data.klass = Item
+      out.data.headers = ['id','service','name cred','user','published at', 'title','excerpt']
+      out.data.ascii_format_row = lambda{|x| ' %5s |%13s |%13s |%13s |%20s |%10s |%10s'.t(*x)}
+      out.data.row = lambda{|x| 
+      [
+        x.id, 
+        x.service.name, 
+        x.account.name_credential,
+        x.account.user.email,
+        x.published_at.strftime('%Y-%m-%d %H:%I:%S'), 
+        truncate(x.content,10),
+        truncate(x.title,10)
+      ]}
       out
     end
 
     cli.does(:delete, "remove the reflection of the item") do
-      option('-h',&help)
-      required('item_id')
+      required('item_id', "item id to delete")       
       required('current_user_email')
     end
     def delete(id,current_user_email,opts)
-      user = current_user(current_user_email)
       out = cli.out.new
+      user = current_user(current_user_email)      
       out << Item.remove(id, user)
       out
     end
