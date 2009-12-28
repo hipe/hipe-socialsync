@@ -3,7 +3,7 @@ require 'hipe-socialsync'
 
 
 # You may not want to edit this file.  It was generated from data in "services.screenshots"
-# by hipe-cli gentest on 2009-12-27 05:31.
+# by hipe-cli gentest on 2009-12-28 18:37.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -15,9 +15,9 @@ require 'hipe-socialsync'
 
 describe "Service tests (generated tests)" do
 
-  it "sosy db:auto-migrate -F (s-0)" do
+  it "sosy db:auto-migrate -F test (s-0)" do
     @app = Hipe::SocialSync::App.new(['-e','test'])
-    x = @app.run(["db:auto-migrate", "-F"])
+    x = @app.run(["db:auto-migrate", "-F", "test"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     auto-migrated test db.
     __HERE__
@@ -45,13 +45,7 @@ describe "Service tests (generated tests)" do
 
   it "sosy -e test services:list (s-3)" do
     x = @app.run(["-e", "test", "services:list"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    3                  eraseme
-    2                   tumblr
-    1                wordpress
-    3 services
-    __HERE__
-    x.to_s.chomp.should.equal y
+    x.data.table.list.count.should.equal(3)
   end
 
   it "sosy services:delete notthere admin@admin (s-4)" do

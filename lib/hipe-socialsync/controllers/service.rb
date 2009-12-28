@@ -2,7 +2,7 @@ module Hipe::SocialSync::Plugins
   class Services
     include Hipe::Cli
     include Hipe::SocialSync::Model
-    include Hipe::SocialSync::ControllerCommon    
+    include Hipe::SocialSync::ControllerCommon
     cli.out.klass = Hipe::SocialSync::GoldenHammer
     cli.description = "manage services"
     cli.default_command = 'help'
@@ -27,10 +27,12 @@ module Hipe::SocialSync::Plugins
     }
     def list(opts)
       out = cli.out.new
-      out.data.common_template = 'list'
-      out.data.list = Service.all :order => [:name.asc]
-      out.data.klass = Service
-      out.data.row = lambda{|x| ['%-5d'.t(x.id),'%20s'.t(x.name)]}
+      out.data.common_template = 'table'
+      svcs = Service.all :order => [:name.asc]
+      out.data.table = Hipe::Table.make do
+        field(:id){|x| x.id}; field(:name){|x| x.name}
+        self.list = svcs
+      end
       out
     end
 

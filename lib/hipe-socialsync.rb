@@ -4,6 +4,7 @@ require 'ruby-debug'
 require 'hipe-cli'
 require 'hipe-core/infrastructure/exception-like'
 require 'hipe-core/struct/open-struct-extended'
+require 'hipe-core/struct/table'
 # require 'hipe-core/logic/rules-lite'
 require 'dm-core'
 require 'dm-aggregates'
@@ -41,20 +42,25 @@ module Hipe
           super
         end
       end
-      def list_template
-        s = Hipe::Io::BufferString.new
-        formatter = data.ascii_format_row || lambda{|row| row * ' ' }
-        if data.headers
-          # s.puts(formatter.call(data.headers).gsub(' ','_'))
-          s.puts(formatter.call(data.headers))
-          s.puts(formatter.call(Array.new(data.headers.size)).gsub(' ','-'))
-        end
-        data.list.each do |item|
-          s.puts(formatter.call(data.row.call(item)))
-        end
-        s.puts %{#{data.list.count} #{Extlib::Inflection.pluralize(data.human_name || data.klass.human_name)}}
-        s
+      def table_template
+        lines = [data.table.render(:ascii)]
+        lines.concat all_messages
+        lines * "\n"
       end
+      #def list_template
+      #  s = Hipe::Io::BufferString.new
+      #  formatter = data.ascii_format_row || lambda{|row| row * ' ' }
+      #  if data.headers
+      #    # s.puts(formatter.call(data.headers).gsub(' ','_'))
+      #    s.puts(formatter.call(data.headers))
+      #    s.puts(formatter.call(Array.new(data.headers.size)).gsub(' ','-'))
+      #  end
+      #  data.list.each do |item|
+      #    s.puts(formatter.call(data.row.call(item)))
+      #  end
+      #  s.puts %{#{data.list.count} #{Extlib::Inflection.pluralize(data.human_name || data.klass.human_name)}}
+      #  s
+      #end
     end
     class App
       include Hipe::Cli
@@ -66,7 +72,7 @@ module Hipe
       cli.out.klass = GoldenHammer
       cli.plugins.add_directory(%{#{DIR}/lib/hipe-socialsync/controllers}, Plugins, :lazy=>true)
       cli.config = OpenStruct.new({
-        :db => Hipe::OpenStructExtended.new({
+        :db => Hipe::OpenStructExtended.new({   # @todo Gash
           :test => %{sqlite3://#{Hipe::SocialSync::DIR}/data/test.db},
           :dev  => %{sqlite3://#{Hipe::SocialSync::DIR}/data/dev.db}
         })
@@ -122,7 +128,11 @@ module Hipe
     end
     module ControllerCommon
       def current_user(identifier)
+        return identifier if identifier.kind_of? Model::User
         Hipe::SocialSync::Model::User.first_or_throw :email=>identifier
+      end
+      def argument_error(*args)
+        throw :invalid, Model::ValidationErrors[*args]
       end
     end
   end # SocialSync

@@ -3,7 +3,7 @@ require 'hipe-socialsync'
 
 
 # You may not want to edit this file.  It was generated from data in "items.screenshots"
-# by hipe-cli gentest on 2009-12-27 07:53.
+# by hipe-cli gentest on 2009-12-28 18:35.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -15,9 +15,9 @@ require 'hipe-socialsync'
 
 describe "Item tests (generated tests)" do
 
-  it "sosy db:auto-migrate -F (i-0)" do
+  it "sosy db:auto-migrate -F test (i-0)" do
     @app = Hipe::SocialSync::App.new(['-e','test'])
-    x = @app.run(["db:auto-migrate", "-F"])
+    x = @app.run(["db:auto-migrate", "-F", "test"])
     x.valid?.should.equal true
   end
 
@@ -42,7 +42,7 @@ describe "Item tests (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# add item wrong service name (i-2)" do
+  it "# add item wrong service name  (i-2)" do
     x = @app.run(["items:add", "wordpresz", "doofis", "123", "me", "i am a blog entry", "kw1,kw2,kw3", "2008-01-02", "published", "my cat", "admin@admin"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     Can't find service with name "wordpresz".
@@ -53,7 +53,7 @@ describe "Item tests (generated tests)" do
   it "# add item no such account (i-3)" do
     x = @app.run(["items:add", "wordpress", "doofis", "123", "me", "i am a blog entry", "kw1,kw2,kw3", "2008-01-02", "published", "my cat", "admin@admin"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
-    Can't find account with name_credential "doofis" and service "wordpress" and user "admin@admin".
+    Can't find account with name credential "doofis" and service "wordpress" and user "admin@admin".
     __HERE__
     x.to_s.chomp.should.equal y
   end
@@ -82,7 +82,7 @@ describe "Item tests (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "# add another (i-7)" do
+  it "# add another (i-7) (i-7)" do
     x = @app.run(["items:add", "wordpress", "imauser", "124", "some-other-author", "i am a blog entry again", "kw1,kw2,kw3", "2008-01-02", "published", "my cat", "admin@admin"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     Added blog entry (ours: #2, theirs: #124).
@@ -90,27 +90,14 @@ describe "Item tests (generated tests)" do
     x.to_s.chomp.should.equal y
   end
 
-  it "sosy items:list admin@admin (i-8)" do
-    x = @app.run(["items:list", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    1     2008-01-02 00:00:00 wordpress    some-other-author              i am a blog entry
-    2     2008-01-02 00:00:00 wordpress    some-other-author        i am a blog entry again
-    2 items
-    __HERE__
-    x.to_s.chomp.should.equal y
+  it "# list should be two (i-8) (i-8)" do
+    x = @app.run(["items:list"])
+    x.data.table.list.size.should.equal 2
   end
 
-  it "sosy items:delete -h (i-9)" do
+  it "# delete help should work (i-9) (i-9)" do
     x = @app.run(["items:delete", "-h"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    items:delete - remove the reflection of the item
-
-    Usage: sosy items:delete [-h] item_id current_user_email
-        -h
-            item_id
-            current_user_email
-    __HERE__
-    x.to_s.chomp.should.equal y
+    x.valid?.should.equal true
   end
 
   it "sosy items:delete  blah adminz (i-10)" do

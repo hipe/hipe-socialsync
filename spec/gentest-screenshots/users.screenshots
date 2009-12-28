@@ -10,8 +10,8 @@
 "prompt":"~/d > "
 }
 
-# sosy auto-migrate -F
-~/d > sosy db:auto-migrate -F
+# sosy auto-migrate -F (u-0)
+~/d > sosy db:auto-migrate -F test
 auto-migrated test db.
 
 

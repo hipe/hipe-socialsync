@@ -5,7 +5,7 @@ require 'hipe-core/test/bacon-extensions'
 
 
 # You may not want to edit this file.  It was generated from data in "accounts.screenshots"
-# by hipe-cli gentest on 2009-12-27 05:31.
+# by hipe-cli gentest on 2009-12-28 18:11.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -17,9 +17,9 @@ require 'hipe-core/test/bacon-extensions'
 
 describe "Account tests (generated tests)" do
 
-  it "sosy db:auto-migrate -F (a-0)" do
+  it "sosy db:auto-migrate -F test (a-0)" do
     @app = Hipe::SocialSync::App.new(['-e','test'])
-    x = @app.run(["db:auto-migrate", "-F"])
+    x = @app.run(["db:auto-migrate", "-F", "test"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     auto-migrated test db.
     __HERE__
@@ -49,10 +49,7 @@ describe "Account tests (generated tests)" do
 
   it "sosy accounts:list  admin@admin (a-3)" do
     x = @app.run(["accounts:list", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    0 accounts
-    __HERE__
-    x.to_s.chomp.should.equal y
+    x.data.table.list.size.should.equal 0
   end
 
   it "sosy accounts:add wordprez admin@admin imauser (a-4)" do
@@ -90,9 +87,12 @@ describe "Account tests (generated tests)" do
   it "sosy accounts:list admin@admin (a-8)" do
     x = @app.run(["accounts:list", "admin@admin"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
-    2                 wordprez             imauser2
-    1                 wordprez              imauser
-    2 accounts
+    +----------------------------------------+
+    |  id |  service name |  name credential |
+    +----------------------------------------+
+    |   2 |      wordprez |         imauser2 |
+    |   1 |      wordprez |          imauser |
+    +----------------------------------------+
     __HERE__
     x.to_s.chomp.should.equal y
   end

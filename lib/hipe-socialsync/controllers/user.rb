@@ -2,7 +2,7 @@ module Hipe::SocialSync::Plugins
   class Users
     include Hipe::Cli
     include Hipe::SocialSync::Model
-    include Hipe::SocialSync::ControllerCommon    
+    include Hipe::SocialSync::ControllerCommon
     cli.out.klass = Hipe::Io::GoldenHammer
     cli.description = "it's premature to add users, don't you think?"
     cli.does 'help', 'overview of user commands'

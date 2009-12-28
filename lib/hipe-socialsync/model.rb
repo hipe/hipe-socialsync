@@ -75,7 +75,7 @@ module Hipe::SocialSync::Model
 
   module Inflector
     def self.humanize(str) #@TODO see if this is the same as Extlib::Inflector.humanize
-      str.to_s.match(/[^:]+$/)[0].gsub(/([a-z])([A-Z])/,'\1 \2').downcase
+      str.to_s.match(/[^:]+$/)[0].gsub(/([a-z])([A-Z])/,'\1 \2').gsub('_',' ').downcase
     end
     def self.class_basename(cls)
       cls.to_s.match(/([^:]*)$/).captures[0]
@@ -201,6 +201,9 @@ module Hipe::SocialSync::Model
   class User
     include DataMapper::Resource
     include DataObjectCommon
+    has n, :accounts
+    has n, :items, :through => :accounts
+
     in_a_word :email
 
     property :email, String, :length=>(1..80), :format => :email_address, :unique => true,
@@ -209,7 +212,6 @@ module Hipe::SocialSync::Model
         :is_unique => lambda{|res, prop| 'There is already a %s "%s".'.t(res.class.human_name,res.send(prop.name))}
       }
     property :encrypted_password, String
-    #has n, :accounts
 
     def self.kreate email, admin
       email.strip!
@@ -233,6 +235,8 @@ module Hipe::SocialSync::Model
     include DataObjectCommon
 
     has n, :accounts
+    has n, :items, :through => :accounts
+
     property :name, String, :length=>(2..20), :unique => true,
       :messages => {
         :is_unique => lambda{|res, prop| 'There is already a %s "%s".'.t(res.class.human_name,res.send(prop.name))}
@@ -259,6 +263,8 @@ module Hipe::SocialSync::Model
 
     belongs_to :user
     belongs_to :service
+    has n, :items
+
     property :name_credential, String, :length => (1..20)
 
     def self.kreate(service_name, name_credential, user_obj)
@@ -285,15 +291,17 @@ module Hipe::SocialSync::Model
     end
   end
 
-
   class Item
     include DataMapper::Resource
     include DataObjectCommon
     include Hipe::AsciiTypesetting::Methods
 
     belongs_to :account
+    has 1, :user, :through => :account
+    has 1, :service, :through => :account
+
     property :foreign_id, Integer, :required => true
-    property :author, String, :length => (2..20)
+    property :author, String, :length => (2..40)
     property :content, Text, :required => true
     property :content_md5, String, :length => (32)
     property :keywords, Text
@@ -317,6 +325,21 @@ module Hipe::SocialSync::Model
 
     def one_word; truncate(title,15).inspect end
 
+    # def self.of_user(user_obj)
+    #   kind_of_or_throw :user, user_obj, User
+    #   all(:user => user_obj)
+    # end
+    #
+    # def self.of_service(service_obj)
+    #   kind_of_or_throw :service, service_obj, Service
+    #   all(:service => service_obj)
+    # end
+    #
+    # def self.of_account(account_obj)
+    #   kind_of_or_throw :account, account_obj, Account
+    #   all(:account => account_obj)
+    # end
+    #
     def self.kreate(account_obj, foreign_id, author_str, content_str,
          keywords_str, published_at, status, title, current_user_obj)
       published_at = to_time_or_throw published_at
@@ -341,9 +364,9 @@ module Hipe::SocialSync::Model
       obj
     end
 
-    def self.remove(id, user_obj)
+    def self.remove(id_or_item, user_obj)
       assert_kind_of :user, user_obj, User
-      item = Item.first_or_throw(:id => id)
+      item = id_or_item.kind_of?(Item) ? id_or_item : Item.first_or_throw(:id => id_or_item)
       unless (item.account.user == user_obj)
         throw :invalid, ValidationErrors["That item doesn't belong to you."]
       end

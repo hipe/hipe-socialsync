@@ -1,0 +1,13 @@
+~/d > sosy -e test db:auto-migrate -F
+auto-migrated test db.
+~/d > cp data/test.db data/dev.db
+~/d > sosy accounts:add wordpress admin@admin imauser
+Added wordpress account of "imauser".
+~/d >
+
+~/d > sosy wp:pull file-not-there.xml imauzer admin@admin
+File not found: "file-not-there.xml"
+See "sosy wp:pull -h" for more info.
+
+~/d > sosy wp:pull spec/xml-fixtures/wordpress.peterjennings.2009-11-11.xml imauzer admin@admin
+Can't find account with name credential "imauzer" and service "wordpress" and user "admin@admin".

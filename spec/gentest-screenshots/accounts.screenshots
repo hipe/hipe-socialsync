@@ -10,7 +10,7 @@
 "prompt":"~/d > "
 }
 
-~/d > sosy db:auto-migrate -F
+~/d > sosy db:auto-migrate -F test
 auto-migrated test db.
 
 ~/d > sosy accounts:list -h
@@ -25,7 +25,9 @@ There is one missing required argument: current_user_email
 See "sosy accounts:list -h" for more info.
 
 ~/d > sosy accounts:list  admin@admin
-0 accounts
+#! start code
+  x.data.table.list.size.should.equal 0
+#! end code
 
 ~/d > sosy accounts:add wordprez admin@admin imauser
 Can't find service with name "wordprez".
@@ -40,9 +42,13 @@ Added wordprez account of "imauser".
 Added wordprez account of "imauser2".
 
 ~/d > sosy accounts:list admin@admin
-2                 wordprez             imauser2
-1                 wordprez              imauser
-2 accounts
++----------------------------------------+
+|  id |  service name |  name credential |
++----------------------------------------+
+|   2 |      wordprez |         imauser2 |
+|   1 |      wordprez |          imauser |
++----------------------------------------+
+
 
 ~/d > sosy accounts:delete wordprez imauser2 admin@admin
 Removed record of wordprez account for "imauser2".

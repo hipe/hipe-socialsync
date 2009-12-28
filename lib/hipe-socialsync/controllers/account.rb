@@ -27,13 +27,16 @@ module Hipe::SocialSync::Plugins
       required(:current_user_email, "the email of the current user")
     }
     def list(current_user_email,opts)
-      out = cli.out.new
       user_obj = current_user(current_user_email)
       accts = Account.all(:user=>user_obj,:order=>[:id.desc])
-      out.data.common_template = 'list'
-      out.data.list = accts
-      out.data.klass = Account
-      out.data.row = lambda{|x| ['%-5d'.t(x.id),'%20s'.t(x.service.name), '%20s'.t(x.name_credential)]}
+      out = cli.out.new
+      out.data.common_template = 'table'
+      out.data.table = Hipe::Table.make do
+        field(:id){|x| x.id}
+        field(:service_name){|x| x.service.name}
+        field(:name_credential){|x| x.name_credential}
+        self.list = accts
+      end
       out
     end
 

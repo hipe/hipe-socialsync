@@ -11,7 +11,7 @@
 "chomp":true
 }
 
-~/d > sosy db:auto-migrate -F
+~/d > sosy db:auto-migrate -F test
 #! start code
   x.valid?.should.equal true
 #! end code
@@ -33,13 +33,13 @@ Usage: sosy items:add [-h|--help] service_name name_credential foreign_id author
         current_user_email
 
 
-# add item wrong service name
+# add item wrong service name 
 ~/d > sosy items:add wordpresz doofis 123 me  "i am a blog entry" 'kw1,kw2,kw3' '2008-01-02' 'published' 'my cat' admin@admin
 Can't find service with name "wordpresz".
 
 # add item no such account
 ~/d > sosy items:add wordpress doofis 123 me  "i am a blog entry" 'kw1,kw2,kw3' '2008-01-02' 'published' 'my cat' admin@admin
-Can't find account with name_credential "doofis" and service "wordpress" and user "admin@admin".
+Can't find account with name credential "doofis" and service "wordpress" and user "admin@admin".
 
 # add account with everything ok
 ~/d > sosy accounts:add wordpress admin@admin imauser
@@ -53,23 +53,22 @@ Added blog entry (ours: #1, theirs: #123).
 ~/d > sosy items:add wordpress imauser 123 some-other-author "i am a blog entry" 'kw1,kw2,kw3' '2008-01-02' 'published' 'my cat' admin@admin
 Md5 "7d9ad782a0a270d410bea8b81569e6c5" is already taken.  Another blog entry (#123) from 2008-01-02 already has that content.  You already have another wordpress blog entry in the "imauser" account with that foreign id (#123).
 
-# add another
+# add another (i-7)
 ~/d > sosy items:add wordpress imauser 124 some-other-author "i am a blog entry again" 'kw1,kw2,kw3' '2008-01-02' 'published' 'my cat' admin@admin
 Added blog entry (ours: #2, theirs: #124).
 
-~/d > sosy items:list admin@admin
-1     2008-01-02 00:00:00 wordpress    some-other-author              i am a blog entry
-2     2008-01-02 00:00:00 wordpress    some-other-author        i am a blog entry again
-2 items
 
-~/d > sosy items:delete -h
-items:delete - remove the reflection of the item
+# list should be two (i-8)
+~/d > sosy items:list
+#! start code
+  x.data.table.list.size.should.equal 2
+#! end code
 
-Usage: sosy items:delete [-h] item_id current_user_email
-    -h
-        item_id
-        current_user_email
-
+# delete help should work (i-9)
+~/d > sosy items:delete -h 
+#! start code
+  x.valid?.should.equal true
+#! end code
 
 ~/d > sosy items:delete  blah adminz
 Can't find user with email "adminz".
