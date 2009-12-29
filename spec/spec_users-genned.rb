@@ -3,7 +3,7 @@ require 'hipe-socialsync'
 
 
 # You may not want to edit this file.  It was generated from data in "users.screenshots"
-# by hipe-cli gentest on 2009-12-29 06:16.
+# by hipe-cli gentest on 2009-12-29 07:10.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -16,7 +16,7 @@ require 'hipe-socialsync'
 describe "User tests (generated tests)" do
 
   it "# sosy auto-migrate -F (u-0) (u-0)" do
-    @app = Hipe::SocialSync::App.new(['-e','test']) 
+    @app = Hipe::SocialSync::App.new(['-e','test'])
     x = @app.run(["db:auto-migrate", "-F", "test"])
     y = "auto-migrated test db."
     x.to_s.chomp.should.equal y
@@ -44,7 +44,7 @@ describe "User tests (generated tests)" do
     x = @app.run(["users:add", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     users:add - add a user to the list
-    
+
     Usage: sosy users:add [-h] email admin_email
         -h
             email                        any ol' name you want, not an existing name
@@ -112,7 +112,7 @@ describe "User tests (generated tests)" do
     x = @app.run(["users:delete", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     users:delete - delete user accounts
-    
+
     Usage: sosy users:delete [-h] email admin
         -h
             email

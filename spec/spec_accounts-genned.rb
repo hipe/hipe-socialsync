@@ -5,7 +5,7 @@ require 'hipe-core/test/bacon-extensions'
 
 
 # You may not want to edit this file.  It was generated from data in "accounts.screenshots"
-# by hipe-cli gentest on 2009-12-29 06:16.
+# by hipe-cli gentest on 2009-12-29 07:10.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -18,7 +18,7 @@ require 'hipe-core/test/bacon-extensions'
 describe "Account tests (generated tests)" do
 
   it "sosy db:auto-migrate -F test (a-0)" do
-    @app = Hipe::SocialSync::App.new(['-e','test']) 
+    @app = Hipe::SocialSync::App.new(['-e','test'])
     x = @app.run(["db:auto-migrate", "-F", "test"])
     y = "auto-migrated test db."
     x.to_s.chomp.should.equal y
@@ -28,7 +28,7 @@ describe "Account tests (generated tests)" do
     x = @app.run(["accounts:list", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     accounts:list - show all accounts
-    
+
     Usage: sosy accounts:list [-h] current_user_email
         -h
             current_user_email           the email of the current user

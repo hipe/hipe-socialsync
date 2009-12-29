@@ -17,8 +17,8 @@ module Hipe::SocialSync::Plugins
 
     cli.does(:pull,'parse wordpress xml into database.') {
       option('-h',&help)
-      option('-d','--dry',"Dry run.  Does everything the same but write to the database.")
-      option('limit', "only this many will be pulled in from the xml file", :default=>'2'){|it|
+      option('-d', '--[no-]dry', "Dry run.  Does everything the same but write to the database.")
+      option('limit', "only this many will be pulled in from the xml file", :default=>'5'){|it|
         it.must_match(0..50)
         it.must_be_integer
       }
@@ -48,9 +48,10 @@ module Hipe::SocialSync::Plugins
       return @out unless @out.valid?
       @out << summarize(@summary)
       item_controller  = cli.parent.plugins[:items]
-      i = nil
+      i = -1
+      dry_switch = opts.dry ? '--dry' : '--no-dry'
       objects.each_with_index do |o,i|
-        sub_out = item_controller.cli.run(['add',
+        sub_out = item_controller.cli.run(['add', dry_switch,
           'wordpress', name_credential, o.art_id,
           o.author, o.content, o.tags,
           o.post_date, o.status, o.title,
@@ -59,7 +60,7 @@ module Hipe::SocialSync::Plugins
         return sub_out unless sub_out.valid?
         @out.puts sub_out.to_s
       end
-      @out.puts %{\nDone importing #{i} objects.}
+      @out.puts %{\nDone importing #{i+1} objects.}
       @out
     end
 
@@ -93,7 +94,7 @@ module Hipe::SocialSync::Plugins
           )
           summary[:skipped][:because_of_no_content] += 1
         else
-          @out.puts summarizer.minimize(%{\nGrabbing article #%%id%%},'_id_' => obj.art_id)
+          @out.puts summarizer.minimize(%{\nGrabbing article #%%id %%},'id ' => obj.art_id)
           summary[:pulled_reflection_of] += 1
           objects << OpenStruct.new(obj)
           if (@limit && summary[:pulled_reflection_of] >= @limit)
@@ -125,7 +126,7 @@ module Hipe::SocialSync::Plugins
     def summarize summary
       s = ''
       s << ( "\n\n"+((('='*80)+"\n")*1)+"\nSummary: \n" )
-      s << "of items in wordpress xml "+ Hipe::FunSummarize.summarize_totals(summary);
+      s << "of the items in the wordpress xml file "+ Hipe::FunSummarize.summarize_totals(summary);
       s << "\n"
       s
     end

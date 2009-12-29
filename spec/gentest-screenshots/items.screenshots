@@ -1,3 +1,4 @@
+# bacon spec/spec_items-genned.rb
 # hipe-cli gentest spec/gentest-screenshots/*
 # hipe-cli gentest spec/gentest-screenshots/items.screenshots
 # This is a gentest file for use with hipe-cli gentest.
@@ -18,20 +19,9 @@
 
 ~/d > sosy items:add -h
 items:add - add an entry and asociate it w/ an account
-
-Usage: sosy items:add [-h|--help] service_name name_credential foreign_id author content_str keywords_str published_at status title current_user_email
-    -h, --help
-        service-name
-        name-credential
-        foreign-id
-        author
-        content-str
-        keywords-str
-        published_at
-        status
-        title
-        current_user_email
-
+#! start code
+  x.valid?.should.equal true
+#! end code 
 
 # add item wrong service name 
 ~/d > sosy items:add wordpresz doofis 123 me  "i am a blog entry" 'kw1,kw2,kw3' '2008-01-02' 'published' 'my cat' admin@admin

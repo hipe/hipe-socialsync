@@ -1,4 +1,4 @@
-# bacon -n '.*' spec/spec_services-genned.rb
+# bacon -n spec/spec_services-genned.rb
 # hipe-cli gentest spec/gentest-screenshots/*
 # hipe-cli gentest spec/gentest-screenshots/services.screenshots
 # This is a gentest file for use with hipe-cli gentest.

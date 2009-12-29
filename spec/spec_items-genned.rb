@@ -3,7 +3,7 @@ require 'hipe-socialsync'
 
 
 # You may not want to edit this file.  It was generated from data in "items.screenshots"
-# by hipe-cli gentest on 2009-12-29 06:16.
+# by hipe-cli gentest on 2009-12-29 07:13.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -16,30 +16,14 @@ require 'hipe-socialsync'
 describe "Item tests (generated tests)" do
 
   it "sosy db:auto-migrate -F test (i-0)" do
-    @app = Hipe::SocialSync::App.new(['-e','test']) 
+    @app = Hipe::SocialSync::App.new(['-e','test'])
     x = @app.run(["db:auto-migrate", "-F", "test"])
     x.valid?.should.equal true
   end
 
   it "sosy items:add -h (i-1)" do
     x = @app.run(["items:add", "-h"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    items:add - add an entry and asociate it w/ an account
-    
-    Usage: sosy items:add [-h|--help] service_name name_credential foreign_id author content_str keywords_str published_at status title current_user_email
-        -h, --help
-            service-name
-            name-credential
-            foreign-id
-            author
-            content-str
-            keywords-str
-            published_at
-            status
-            title
-            current_user_email
-    __HERE__
-    x.to_s.chomp.should.equal y
+    x.valid?.should.equal true
   end
 
   it "# add item wrong service name  (i-2)" do

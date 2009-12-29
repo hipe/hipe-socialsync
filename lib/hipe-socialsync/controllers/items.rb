@@ -10,6 +10,7 @@ module Hipe::SocialSync::Plugins
     cli.does 'help','overview of item commands'
     cli.does(:add, "add an entry and asociate it w/ an account") do
        option('-h','--help',&help)
+       option('-d', '--[no-]dry', "Dry run.  Does everything the same but doesn't write to the database.")
 
        required('service-name')
        required('name-credential')
@@ -28,12 +29,17 @@ module Hipe::SocialSync::Plugins
     def add(service_name, name_credential, foreign_id,
             author, content, keywords_str,
             published_at, status, title,
-            user_email, o)
+            user_email, opts)
       out = cli.out.new
       user = current_user(user_email)
       svc = Service.first_or_throw(:name=>service_name)
       acct = Account.first_or_throw(:name_credential=>name_credential, :service=>svc, :user=>user)
-      item = Item.kreate(acct, foreign_id, author, content, keywords_str, published_at, status, title, user)
+      if (opts.dry)
+        item = Object.new # openstruct won't work
+        def item.id; 'dry-run' end
+      else
+        item = Item.kreate(acct, foreign_id, author, content, keywords_str, published_at, status, title, user)
+      end
       out << %{Added blog entry (ours: ##{item.id}, theirs: ##{foreign_id}).}
       out
     end
