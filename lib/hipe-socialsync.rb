@@ -134,6 +134,9 @@ module Hipe
       def argument_error(*args)
         throw :invalid, Model::ValidationErrors[*args]
       end
+      def humanize_lite(str)
+        str.to_s.gsub('_',' ')
+      end      
     end
   end # SocialSync
 end # Hipe

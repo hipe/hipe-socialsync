@@ -93,6 +93,7 @@ module Hipe::SocialSync::Model
       model.property :id, Serial
       @classes << model
     end
+    # try to describe this object in about one word, hopefully identifying it uniquely (in whatever context)    
     def one_word
       if self.class.in_a_word
         send(self.class.in_a_word).inspect
@@ -105,6 +106,8 @@ module Hipe::SocialSync::Model
   end
 
   module DataObjectCommonClassMethods
+    # @see DataObjectCommon#one_word
+    # frequently the "one_word" implementation for a model is simply one field
     def in_a_word(attr=nil)
       if (attr)
         @in_a_word = attr
@@ -179,23 +182,36 @@ module Hipe::SocialSync::Model
       raise ValidationErrorsException[obj] unless obj.valid?
       obj.save
     end
+    def target # was 'right'
+      klass = right_class.split(/::/).inject(Object) { |k, n| k.const_get n }      
+      obj   = klass.get(right_id)
+      obj
+    end
   end
 
   class Event
     include DataMapper::Resource
     include DataObjectCommon
+    # has n, :details, :model => Relationship
+    
     property :type, String, :length => (2..60)
     property :happened_at, DateTime, :required => true
 
     def self.kreate event_type, details
-      obj = self.new :type => event_type.to_s, :happened_at => DateTime.now
-      throw :invalid, ValidationErrors[obj] unless obj.valid?
-      obj.save
+      event_obj = self.new :type => event_type.to_s, :happened_at => DateTime.now
+      throw :invalid, ValidationErrors[event_obj] unless event_obj.valid?
+      event_obj.save
       details.each do |role, obj2|
         kind_of_or_throw role, obj2, ::Object
-        Relationship.kreate obj, role, obj2
+        Relationship.kreate event_obj, role, obj2
       end
     end
+    
+    def details
+      Relationship.all(:left_class=>self.class.to_s, :left_id=>self.id)
+    end
+    
+    
   end
 
   class User
