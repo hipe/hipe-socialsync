@@ -1,13 +1,55 @@
-~/d > sosy -e test db:auto-migrate -F
-auto-migrated test db.
-~/d > cp data/test.db data/dev.db
+# bacon -n '.*' spec/spec_wp-genned.rb
+# hipe-cli gentest spec/gentest-screenshots/wp.screenshots
+
+# This is a gentest file for use with hipe-cli gentest.
+
+# Inspired by "spec/fixtures/experiment" this is the first file that attempts to be 
+# both an automated test file and a bootstrap file that sets up a development environment.
+# It accomplishes this by the $hipe_env global hack, and the first '#! start code' block below 
+# 
+
+
+{
+"requires":["hipe-socialsync"],
+"describe":"wp tests",
+"construct":"Hipe::SocialSync::App.new(['-e', $hipe_env || 'test'])",
+"letter":"wp",
+"run_with":"app",
+"prompt":"~/d > "
+}
+
+~/d > sosy ping
+#! start code
+  env = $hipe_env || 'test'
+  md = x.to_s.match  %r{^hello\.  my environment is "(.+)"\.$}i
+  md.should.be.kind_of MatchData
+  md[1].should.equal env
+  x = @app.run(["db:auto-migrate", "-F", env])
+  md = x.to_s.match  %r{auto-migrated ([^ ]+) db}
+  md.should.be.kind_of MatchData
+  md[1].should.equal env
+  
+  x = @app.run(["db:auto-migrate", "-F", env])
+  md = x.to_s.match %r{auto-migrated ([^ ]+) db}i
+  md.should.be.kind_of MatchData
+  md[1].should.equal env
+#! end code
+
+
 ~/d > sosy accounts:add wordpress admin@admin imauser
 Added wordpress account of "imauser".
-~/d >
+
 
 ~/d > sosy wp:pull file-not-there.xml imauzer admin@admin
 File not found: "file-not-there.xml"
 See "sosy wp:pull -h" for more info.
 
+
 ~/d > sosy wp:pull spec/xml-fixtures/wordpress.peterjennings.2009-11-11.xml imauzer admin@admin
 Can't find account with name credential "imauzer" and service "wordpress" and user "admin@admin".
+
+# 
+# ~/d > sosy wp:pull -d spec/xml-fixtures/wordpress.peterjennings.2009-11-11.xml imauser admin@admin
+# #! start code
+#   x.valid?.should.equal true
+# #! end code

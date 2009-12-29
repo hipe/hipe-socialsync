@@ -7,7 +7,8 @@
 "construct":"Hipe::SocialSync::App.new(['-e','test'])",
 "letter":"a",
 "run_with":"app",
-"prompt":"~/d > "
+"prompt":"~/d > ",
+"chomp":true
 }
 
 ~/d > sosy db:auto-migrate -F test

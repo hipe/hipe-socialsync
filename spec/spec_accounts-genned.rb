@@ -5,7 +5,7 @@ require 'hipe-core/test/bacon-extensions'
 
 
 # You may not want to edit this file.  It was generated from data in "accounts.screenshots"
-# by hipe-cli gentest on 2009-12-28 18:11.
+# by hipe-cli gentest on 2009-12-29 06:16.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -18,11 +18,9 @@ require 'hipe-core/test/bacon-extensions'
 describe "Account tests (generated tests)" do
 
   it "sosy db:auto-migrate -F test (a-0)" do
-    @app = Hipe::SocialSync::App.new(['-e','test'])
+    @app = Hipe::SocialSync::App.new(['-e','test']) 
     x = @app.run(["db:auto-migrate", "-F", "test"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    auto-migrated test db.
-    __HERE__
+    y = "auto-migrated test db."
     x.to_s.chomp.should.equal y
   end
 
@@ -30,7 +28,7 @@ describe "Account tests (generated tests)" do
     x = @app.run(["accounts:list", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     accounts:list - show all accounts
-
+    
     Usage: sosy accounts:list [-h] current_user_email
         -h
             current_user_email           the email of the current user
@@ -54,33 +52,25 @@ describe "Account tests (generated tests)" do
 
   it "sosy accounts:add wordprez admin@admin imauser (a-4)" do
     x = @app.run(["accounts:add", "wordprez", "admin@admin", "imauser"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Can't find service with name "wordprez".
-    __HERE__
+    y = "Can't find service with name \"wordprez\"."
     x.to_s.chomp.should.equal y
   end
 
   it "sosy services:add wordprez admin@admin (a-5)" do
     x = @app.run(["services:add", "wordprez", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Created service "wordprez".  Now there are three services.
-    __HERE__
+    y = "Created service \"wordprez\".  Now there are three services."
     x.to_s.chomp.should.equal y
   end
 
   it "sosy accounts:add wordprez admin@admin imauser (a-6)" do
     x = @app.run(["accounts:add", "wordprez", "admin@admin", "imauser"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Added wordprez account of "imauser".
-    __HERE__
+    y = "Added wordprez account of \"imauser\"."
     x.to_s.chomp.should.equal y
   end
 
   it "sosy accounts:add wordprez admin@admin imauser2 (a-7)" do
     x = @app.run(["accounts:add", "wordprez", "admin@admin", "imauser2"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Added wordprez account of "imauser2".
-    __HERE__
+    y = "Added wordprez account of \"imauser2\"."
     x.to_s.chomp.should.equal y
   end
 
@@ -99,17 +89,13 @@ describe "Account tests (generated tests)" do
 
   it "sosy accounts:delete wordprez imauser2 admin@admin (a-9)" do
     x = @app.run(["accounts:delete", "wordprez", "imauser2", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Removed record of wordprez account for "imauser2".
-    __HERE__
+    y = "Removed record of wordprez account for \"imauser2\"."
     x.to_s.chomp.should.equal y
   end
 
   it "sosy accounts:add wordprez admin@admin imauser (a-10)" do
     x = @app.run(["accounts:add", "wordprez", "admin@admin", "imauser"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    account already exists for wordprez with username "imauser"
-    __HERE__
+    y = "account already exists for wordprez with username \"imauser\""
     x.to_s.chomp.should.equal y
   end
 end

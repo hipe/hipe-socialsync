@@ -3,7 +3,7 @@ require 'hipe-socialsync'
 
 
 # You may not want to edit this file.  It was generated from data in "items.screenshots"
-# by hipe-cli gentest on 2009-12-28 18:35.
+# by hipe-cli gentest on 2009-12-29 06:16.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -16,7 +16,7 @@ require 'hipe-socialsync'
 describe "Item tests (generated tests)" do
 
   it "sosy db:auto-migrate -F test (i-0)" do
-    @app = Hipe::SocialSync::App.new(['-e','test'])
+    @app = Hipe::SocialSync::App.new(['-e','test']) 
     x = @app.run(["db:auto-migrate", "-F", "test"])
     x.valid?.should.equal true
   end
@@ -25,7 +25,7 @@ describe "Item tests (generated tests)" do
     x = @app.run(["items:add", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     items:add - add an entry and asociate it w/ an account
-
+    
     Usage: sosy items:add [-h|--help] service_name name_credential foreign_id author content_str keywords_str published_at status title current_user_email
         -h, --help
             service-name
@@ -44,49 +44,37 @@ describe "Item tests (generated tests)" do
 
   it "# add item wrong service name  (i-2)" do
     x = @app.run(["items:add", "wordpresz", "doofis", "123", "me", "i am a blog entry", "kw1,kw2,kw3", "2008-01-02", "published", "my cat", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Can't find service with name "wordpresz".
-    __HERE__
+    y = "Can't find service with name \"wordpresz\"."
     x.to_s.chomp.should.equal y
   end
 
   it "# add item no such account (i-3)" do
     x = @app.run(["items:add", "wordpress", "doofis", "123", "me", "i am a blog entry", "kw1,kw2,kw3", "2008-01-02", "published", "my cat", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Can't find account with name credential "doofis" and service "wordpress" and user "admin@admin".
-    __HERE__
+    y = "Can't find account with name credential \"doofis\" and service \"wordpress\" and user \"admin@admin\"."
     x.to_s.chomp.should.equal y
   end
 
   it "# add account with everything ok (i-4)" do
     x = @app.run(["accounts:add", "wordpress", "admin@admin", "imauser"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Added wordpress account of "imauser".
-    __HERE__
+    y = "Added wordpress account of \"imauser\"."
     x.to_s.chomp.should.equal y
   end
 
   it "# add item with everything ok (i-5)" do
     x = @app.run(["items:add", "wordpress", "imauser", "123", "some-other-author", "i am a blog entry", "kw1,kw2,kw3", "2008-01-02", "published", "my cat", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Added blog entry (ours: #1, theirs: #123).
-    __HERE__
+    y = "Added blog entry (ours: #1, theirs: #123)."
     x.to_s.chomp.should.equal y
   end
 
   it "# add same item again and FAIL (i-6)" do
     x = @app.run(["items:add", "wordpress", "imauser", "123", "some-other-author", "i am a blog entry", "kw1,kw2,kw3", "2008-01-02", "published", "my cat", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Md5 "7d9ad782a0a270d410bea8b81569e6c5" is already taken.  Another blog entry (#123) from 2008-01-02 already has that content.  You already have another wordpress blog entry in the "imauser" account with that foreign id (#123).
-    __HERE__
+    y = "Md5 \"7d9ad782a0a270d410bea8b81569e6c5\" is already taken.  Another blog entry (#123) from 2008-01-02 already has that content.  You already have another wordpress blog entry in the \"imauser\" account with that foreign id (#123)."
     x.to_s.chomp.should.equal y
   end
 
   it "# add another (i-7) (i-7)" do
     x = @app.run(["items:add", "wordpress", "imauser", "124", "some-other-author", "i am a blog entry again", "kw1,kw2,kw3", "2008-01-02", "published", "my cat", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Added blog entry (ours: #2, theirs: #124).
-    __HERE__
+    y = "Added blog entry (ours: #2, theirs: #124)."
     x.to_s.chomp.should.equal y
   end
 
@@ -102,57 +90,43 @@ describe "Item tests (generated tests)" do
 
   it "sosy items:delete  blah adminz (i-10)" do
     x = @app.run(["items:delete", "blah", "adminz"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Can't find user with email "adminz".
-    __HERE__
+    y = "Can't find user with email \"adminz\"."
     x.to_s.chomp.should.equal y
   end
 
   it "sosy items:delete  blah admin@admin (i-11)" do
     x = @app.run(["items:delete", "blah", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Can't find item with id "blah".
-    __HERE__
+    y = "Can't find item with id \"blah\"."
     x.to_s.chomp.should.equal y
   end
 
   it "sosy items:delete 1 admin@admin (i-12)" do
     x = @app.run(["items:delete", "1", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Removed the reflection of the item "my cat".
-    __HERE__
+    y = "Removed the reflection of the item \"my cat\"."
     x.to_s.chomp.should.equal y
   end
 
   it "sosy users:add temp@user admin@admin (i-13)" do
     x = @app.run(["users:add", "temp@user", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Created user "temp@user". Now there are 2 users.
-    __HERE__
+    y = "Created user \"temp@user\". Now there are 2 users."
     x.to_s.chomp.should.equal y
   end
 
   it "sosy accounts:add wordpress temp@user meeee (i-14)" do
     x = @app.run(["accounts:add", "wordpress", "temp@user", "meeee"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Added wordpress account of "meeee".
-    __HERE__
+    y = "Added wordpress account of \"meeee\"."
     x.to_s.chomp.should.equal y
   end
 
   it "# other user adds item (i-15)" do
     x = @app.run(["items:add", "wordpress", "meeee", "789", "the-author", "i am a blog entry", "", "2008-01-03", "published", "my dog", "temp@user"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Added blog entry (ours: #3, theirs: #789).
-    __HERE__
+    y = "Added blog entry (ours: #3, theirs: #789)."
     x.to_s.chomp.should.equal y
   end
 
   it "sosy items:delete 3 admin@admin (i-16)" do
     x = @app.run(["items:delete", "3", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    That item doesn't belong to you.
-    __HERE__
+    y = "That item doesn't belong to you."
     x.to_s.chomp.should.equal y
   end
 end

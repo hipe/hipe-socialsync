@@ -17,6 +17,7 @@ module Hipe::SocialSync::Plugins
 
     cli.does(:pull,'parse wordpress xml into database.') {
       option('-h',&help)
+      option('-d','--dry',"Dry run.  Does everything the same but write to the database.")
       option('limit', "only this many will be pulled in from the xml file", :default=>'2'){|it|
         it.must_match(0..50)
         it.must_be_integer
@@ -41,7 +42,7 @@ module Hipe::SocialSync::Plugins
           :because_of_status => {},
           :because_of_no_content => 0 },
         :pulled_reflection_of => 0,
-        :number_of_files => 0,
+        :number_of_files_parsed => 0,
       }
       objects = parse_xml xml_in
       return @out unless @out.valid?
@@ -75,14 +76,14 @@ module Hipe::SocialSync::Plugins
         %{skipping file. Error: "#{e.message.strip}"}
         return false
       end
-      summary[:number_of_files] += 1
+      summary[:number_of_files_parsed] += 1
       summarizer = Hipe::FunSummarize
       limit_reached = false
       doc.xpath('/rss/channel/item').each do |item_node|
         obj = object_from_nokogiri_node item_node
         if ! (['publish','inherit','draft'].include?(obj.status))
-          @out.puts summarizer.minimize(%q{Skipping article #%%_id_%% because of status "%%status %%"},
-          "_id_" => obj.art_id,"status "=>obj.status)
+          @out.puts summarizer.minimize(%q{Skipping article #%%id%% because of status "%%status %%"},
+          "id" => obj.art_id,"status "=>obj.status)
           summary[:skipped][:because_of_status][obj.status.to_sym] ||= 0
           summary[:skipped][:because_of_status][obj.status.to_sym] += 1
         elsif (obj.content.length == 0)
@@ -92,7 +93,7 @@ module Hipe::SocialSync::Plugins
           )
           summary[:skipped][:because_of_no_content] += 1
         else
-          @out.puts summarizer.minimize(%{\nGrabbing article #%%_id_%%},'_id_' => obj.art_id)
+          @out.puts summarizer.minimize(%{\nGrabbing article #%%id%%},'_id_' => obj.art_id)
           summary[:pulled_reflection_of] += 1
           objects << OpenStruct.new(obj)
           if (@limit && summary[:pulled_reflection_of] >= @limit)

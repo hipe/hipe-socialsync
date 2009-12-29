@@ -5,7 +5,7 @@ require 'hipe-core/test/bacon-extensions'
 
 
 # You may not want to edit this file.  It was generated from data in "bbb-db.screenshots"
-# by hipe-cli gentest on 2009-12-27 05:31.
+# by hipe-cli gentest on 2009-12-29 06:16.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -18,7 +18,7 @@ require 'hipe-core/test/bacon-extensions'
 describe "Bbb db tests (generated tests)" do
 
   it "sosy db:archive (bbb-db-0)" do
-    @app = Hipe::SocialSync::App.new(['-e','test'])
+    @app = Hipe::SocialSync::App.new(['-e','test']) 
     x = @app.run(["db:archive"])
     x.to_s.should.match %r{^moved [^ ]+ to|database file doesn't exist}i
   end

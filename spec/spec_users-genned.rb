@@ -3,7 +3,7 @@ require 'hipe-socialsync'
 
 
 # You may not want to edit this file.  It was generated from data in "users.screenshots"
-# by hipe-cli gentest on 2009-12-28 18:36.
+# by hipe-cli gentest on 2009-12-29 06:16.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -16,11 +16,9 @@ require 'hipe-socialsync'
 describe "User tests (generated tests)" do
 
   it "# sosy auto-migrate -F (u-0) (u-0)" do
-    @app = Hipe::SocialSync::App.new(['-e','test'])
+    @app = Hipe::SocialSync::App.new(['-e','test']) 
     x = @app.run(["db:auto-migrate", "-F", "test"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    auto-migrated test db.
-    __HERE__
+    y = "auto-migrated test db."
     x.to_s.chomp.should.equal y
   end
 
@@ -46,7 +44,7 @@ describe "User tests (generated tests)" do
     x = @app.run(["users:add", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     users:add - add a user to the list
-
+    
     Usage: sosy users:add [-h] email admin_email
         -h
             email                        any ol' name you want, not an existing name
@@ -63,25 +61,19 @@ describe "User tests (generated tests)" do
 
   it "# bad admin email (u-5)" do
     x = @app.run(["users:add", "blah", "blah"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Can't find user with email "blah".
-    __HERE__
+    y = "Can't find user with email \"blah\"."
     x.to_s.chomp.should.equal y
   end
 
   it "# bad email format (u-6)" do
     x = @app.run(["users:add", "blah", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    "blah" is not a valid email address.
-    __HERE__
+    y = "\"blah\" is not a valid email address."
     x.to_s.chomp.should.equal y
   end
 
   it "# add user (u-7)" do
     x = @app.run(["users:add", "mark@mark", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Created user "mark@mark". Now there are 2 users.
-    __HERE__
+    y = "Created user \"mark@mark\". Now there are 2 users."
     x.to_s.chomp.should.equal y
   end
 
@@ -97,17 +89,13 @@ describe "User tests (generated tests)" do
 
   it "# add again (u-9)" do
     x = @app.run(["users:add", "mark2@mark", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    Created user "mark2@mark". Now there are 3 users.
-    __HERE__
+    y = "Created user \"mark2@mark\". Now there are 3 users."
     x.to_s.chomp.should.equal y
   end
 
   it "# add with already used name (u-10)" do
     x = @app.run(["users:add", "mark@mark", "admin@admin"])
-    y =<<-__HERE__.gsub(/^    /,'').chomp
-    There is already a user "mark@mark".
-    __HERE__
+    y = "There is already a user \"mark@mark\"."
     x.to_s.chomp.should.equal y
   end
 
@@ -124,7 +112,7 @@ describe "User tests (generated tests)" do
     x = @app.run(["users:delete", "-h"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     users:delete - delete user accounts
-
+    
     Usage: sosy users:delete [-h] email admin
         -h
             email
