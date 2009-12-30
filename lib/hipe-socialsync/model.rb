@@ -4,6 +4,7 @@ require 'dm-aggregates'
 require 'md5'
 require 'hipe-core/infrastructure/erroneous'
 require 'hipe-core/lingual/ascii-typesetting'
+#require 'hipe-socialsync/model/item'
 
 repository(:default).adapter.resource_naming_convention = lambda do |value|
   /[^:]+$/.match(value)[0].gsub(/([a-z])([A-Z])/,'\1_\2').downcase + 's'
@@ -93,7 +94,7 @@ module Hipe::SocialSync::Model
       model.property :id, Serial
       @classes << model
     end
-    # try to describe this object in about one word, hopefully identifying it uniquely (in whatever context)    
+    # try to describe this object in about one word, hopefully identifying it uniquely (in whatever context)
     def one_word
       if self.class.in_a_word
         send(self.class.in_a_word).inspect
@@ -102,6 +103,27 @@ module Hipe::SocialSync::Model
       else
         %{##{id.inspect}}
       end
+    end
+    def last_event
+      sql = <<-SQL
+      select e.id from events e
+      left join relationships r on
+        r.left_class = ?
+        and r.left_id = e.id
+        where r.right_class = ? and r.right_id = ?
+        order by e.happened_at desc limit 1
+      SQL
+      result = repository.adapter.select(sql,'Hipe::SocialSync::Model::Event',self.class.to_s, self.id)
+      return nil if result.size == 0
+      Event.first(:id=>result[0])
+    end
+    def events
+      rels = Relationship.all(:left_class=>Event.to_s, :right_class=>self.class, :right_id=>self.id)
+      events = {}
+      rels.each do |rel|
+        events[rel.subject.id] = rel.subject
+      end
+      events.values.sort{|x,y|  y.happened_at <=> x.happened_at}
     end
   end
 
@@ -182,18 +204,23 @@ module Hipe::SocialSync::Model
       raise ValidationErrorsException[obj] unless obj.valid?
       obj.save
     end
-    def target # was 'right'
-      klass = right_class.split(/::/).inject(Object) { |k, n| k.const_get n }      
-      obj   = klass.get(right_id)
-      obj
+    def target
+      @target ||= dereference(right_class, right_id)
+    end
+    def subject
+      @subject ||= dereference(left_class, left_id)
+    end
+    def dereference(class_name,id)
+      class_name.split(/::/).inject(Object) { |k, n| k.const_get n }.get(id)
     end
   end
 
   class Event
     include DataMapper::Resource
     include DataObjectCommon
+    include Hipe::SocialSync::ViewCommon # sin !
     # has n, :details, :model => Relationship
-    
+
     property :type, String, :length => (2..60)
     property :happened_at, DateTime, :required => true
 
@@ -206,12 +233,19 @@ module Hipe::SocialSync::Model
         Relationship.kreate event_obj, role, obj2
       end
     end
-    
+
     def details
       Relationship.all(:left_class=>self.class.to_s, :left_id=>self.id)
     end
-    
-    
+
+    def as_relative_sentence(item)
+      humanize_lite(type) << ' ' << details.reject do |x|
+        item.class == x.target.class && item.id = x.target.id # @todo identity map doesn't work?
+      end.map do |x|
+        %{#{humanize_lite(x.type)} #{x.target.one_word}}
+      end *' ' << ' on ' << date_format(happened_at)
+    end
+
   end
 
   class User
@@ -283,6 +317,10 @@ module Hipe::SocialSync::Model
 
     property :name_credential, String, :length => (1..20)
 
+    def one_word
+      %{#{name_credential}(#{service.name})}
+    end
+
     def self.kreate(service_name, name_credential, user_obj)
       assert_kind_of :user, user_obj, User
       service_obj = Service.first_or_throw(:name=>service_name)
@@ -322,6 +360,7 @@ module Hipe::SocialSync::Model
     property :content_md5, String, :length => (32)
     property :keywords, Text
     property :published_at, DateTime, :required => true
+    # property :sync_group_id, Integer, :required => false
     property :status, String
     property :title, String, :length => (1..80)
     validates_is_unique :content_md5, :scope => :account_id,
@@ -341,21 +380,6 @@ module Hipe::SocialSync::Model
 
     def one_word; truncate(title,15).inspect end
 
-    # def self.of_user(user_obj)
-    #   kind_of_or_throw :user, user_obj, User
-    #   all(:user => user_obj)
-    # end
-    #
-    # def self.of_service(service_obj)
-    #   kind_of_or_throw :service, service_obj, Service
-    #   all(:service => service_obj)
-    # end
-    #
-    # def self.of_account(account_obj)
-    #   kind_of_or_throw :account, account_obj, Account
-    #   all(:account => account_obj)
-    # end
-    #
     def self.kreate(account_obj, foreign_id, author_str, content_str,
          keywords_str, published_at, status, title, current_user_obj)
       published_at = to_time_or_throw published_at
@@ -376,7 +400,7 @@ module Hipe::SocialSync::Model
         :title          => title
       )
       obj.save or throw :invalid, ValidationErrors[obj]
-      Event.kreate(:item_reflection_added, :item=>obj, :account=>account_obj, :by=>current_user_obj)
+      Event.kreate(:item_reflection_added, :of_item=>obj, :from_account=>account_obj, :by=>current_user_obj)
       obj
     end
 

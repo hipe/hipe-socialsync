@@ -47,6 +47,14 @@ module Hipe
         lines.concat all_messages
         lines * "\n"
       end
+      def tables_template
+        lines = []
+        data.tables.each do |table|
+          lines << table.render(:ascii)
+        end
+        lines.concat all_messages
+        lines * "\n"
+      end
       #def list_template
       #  s = Hipe::Io::BufferString.new
       #  formatter = data.ascii_format_row || lambda{|row| row * ' ' }
@@ -130,6 +138,14 @@ module Hipe
         out
       end
     end
+    module ViewCommon
+      def date_format(at)
+        at.strftime('%Y-%m-%d %H:%I:%S')
+      end
+      def humanize_lite(str)
+        str.to_s.gsub('_',' ')
+      end
+    end
     module ControllerCommon
       def current_user(identifier)
         return identifier if identifier.kind_of? Model::User
@@ -137,9 +153,6 @@ module Hipe
       end
       def argument_error(*args)
         throw :invalid, Model::ValidationErrors[*args]
-      end
-      def humanize_lite(str)
-        str.to_s.gsub('_',' ')
       end
     end
   end # SocialSync

@@ -44,12 +44,60 @@ module Hipe::SocialSync::Plugins
       out
     end
 
+    cli.does(:view, "show all details for an individual item") do
+      required('id')
+    end
+    def view(id)
+      item = Item.first_or_throw(:id=>id)
+
+      out = cli.out.new
+      d = out.data
+      d.common_template = :tables
+      d.tables = []
+
+      item_table = self.table
+      item_table.list = [item]
+      item_table.axis = :horizontal
+      d.tables << item_table
+
+      # events_table = Events.table
+      # events_table.list = item.events
+      # d.tables << events_table
+
+      # clones_table = Events.table
+      # clones_table.name = 'clones'
+      # clones_table.show_only :id,:theirs,:user,:service,:name_cred,:published_at,:title,:excerpt,:last_event
+      # clones_table.list = item.clones
+      # d.tables << clones_table
+
+      out
+    end
+
+    def table
+      controller = self
+      Hipe::Table.make do
+        self.name = 'items'
+        field(:id){|x| x.id}
+        field(:theirs){|x| x.foreign_id}
+        field(:user){|x| x.account.user.one_word }
+        field(:service){|x| x.account.service.name}
+        field(:name_cred){|x| x.account.name_credential}
+        field(:published_at){|x| x.published_at.strftime('%Y-%m-%d %H:%I:%S')}
+        field(:title){|x| controller.truncate(x.title,10) }
+        field(:excerpt){|x| controller.truncate(x.content,10) }
+        field(:last_event){|x| x.last_event.as_relative_sentence(x) }
+      end
+    end
+
     # @todo below we hard-code svc names just for fun -- to play w/ optparse completion
     cli.does(:list, "show some items, maybe do something to them") do
       option('-h',&help)
       option('-u','--user EMAIL', 'items that belong to this sosy user [and...]')
       option('-s','--service NAME',['wordpress','tumblr'],'items that are from this service [and...]')
       option('-n','--name-credential NAME','items that are from the account with this username [and...]')
+      option('-i','--ids IDS', 'comma-separated list of item ids') do |x|
+        it.must_match(/^\d+(?:\d+)*$/)
+      end
       optional('COMMAND', 'one day, aggregate actions')
       optional('current_user_email','if you are going to do anything destructive')
     end
@@ -70,19 +118,13 @@ module Hipe::SocialSync::Plugins
         argument_error(%{You can't view items of other users})
       end
 
-      controller = self
-      table = Hipe::Table.make do
-        field(:id){|x| x.id}
-        field(:theirs){|x| x.foreign_id}
-        field(:user){|x| x.account.user.one_word }
-        field(:service){|x| x.account.service.name}
-        field(:name_cred){|x| x.account.name_credential}
-        field(:published_at){|x| x.published_at.strftime('%Y-%m-%d %H:%I:%S')}
-        field(:title){|x| controller.truncate(x.title,10) }
-        field(:excerpt){|x| controller.truncate(x.content,10) }
-      end
+      table = self.table
+      table.show_only :id,:theirs,:user,:service,:name_cred,:published_at,:title,:excerpt
 
       items = get_items(table, user, svc, acct)
+      items[0].last_event
+
+
       out = cli.out.new
       if command_name
         sub_out = do_aggregate(items, command_name, current_user_email, opts)
