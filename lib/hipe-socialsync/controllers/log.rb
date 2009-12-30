@@ -4,7 +4,7 @@ module Hipe::SocialSync::Plugins
     include Hipe::SocialSync::Model
     include Hipe::SocialSync::ControllerCommon
     include Hipe::SocialSync::ViewCommon
-    extend Hipe::SocialSync::ViewCommon    
+    extend Hipe::SocialSync::ViewCommon
     cli.out.klass = Hipe::SocialSync::GoldenHammer
     cli.description = "activity log"
     cli.does 'help','overview of log commands'
