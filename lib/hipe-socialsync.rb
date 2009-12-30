@@ -109,7 +109,11 @@ module Hipe
 
       def run(argv)
         argv.unshift(*@prepend)
-        return catch(:invalid) { cli.run(argv) } # return either the ValidationError or the result
+        return catch(:invalid) do
+          DataMapper.repository do
+            cli.run(argv)
+          end
+        end # return either the ValidationError or the result
       end
 
       cli.does('ping','the minimal action') do
@@ -136,7 +140,7 @@ module Hipe
       end
       def humanize_lite(str)
         str.to_s.gsub('_',' ')
-      end      
+      end
     end
   end # SocialSync
 end # Hipe
