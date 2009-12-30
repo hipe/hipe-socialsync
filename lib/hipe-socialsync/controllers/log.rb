@@ -4,6 +4,7 @@ module Hipe::SocialSync::Plugins
     include Hipe::SocialSync::Model
     include Hipe::SocialSync::ControllerCommon
     include Hipe::SocialSync::ViewCommon
+    extend Hipe::SocialSync::ViewCommon    
     cli.out.klass = Hipe::SocialSync::GoldenHammer
     cli.description = "activity log"
     cli.does 'help','overview of log commands'
@@ -16,15 +17,16 @@ module Hipe::SocialSync::Plugins
       option('-b','--before DATE'){|it| DateTime.parse(it) }
     end
 
-    def table
-      controller = self
+    def self.table
+      formatter = self
       Hipe::Table.make do
         self.name = 'events'
         field(:id){|event| event.id}
-        field(:happened_at){|e| e.happened_at.strftime('%Y-%m-%d %H:%I:%S')}
-        field(:type){|e| controller.humanize_lite(e.type) }
+        field(:happened_at){|e| formatter.date_format(e.happened_at) }
+        field(:type){|e| formatter.humanize_lite(e.type) }
         field(:details,:align=>:left) do |e|
-          e.details.map{|x| %{#{x.type} #{x.target.one_word}} }*' '
+          #e.as_relative_sentence(nil,:omit => )
+          e.details.map{|x| %{#{formatter.humanize_lite(x.type)} #{x.target.one_word}} }*' '
         end
       end
     end
@@ -38,7 +40,7 @@ module Hipe::SocialSync::Plugins
       if (opts.before)
         query[:happened_at.lt] = opts.before
       end
-      table = table
+      table = self.class.table
       items = Event.all(query)
       out = cli.out.new
       out.data.common_template = 'table'

@@ -60,9 +60,9 @@ module Hipe::SocialSync::Plugins
       item_table.axis = :horizontal
       d.tables << item_table
 
-      # events_table = Events.table
-      # events_table.list = item.events
-      # d.tables << events_table
+      events_table = Log.table
+      events_table.list = item.events
+      d.tables << events_table
 
       # clones_table = Events.table
       # clones_table.name = 'clones'
