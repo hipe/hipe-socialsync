@@ -1,5 +1,4 @@
 # bacon spec/spec_items-genned.rb
-# hipe-cli gentest spec/gentest-screenshots/*
 # hipe-cli gentest spec/gentest-screenshots/items.screenshots
 # This is a gentest file for use with hipe-cli gentest.
 {
@@ -51,7 +50,7 @@ Added blog entry (ours: #2, theirs: #124).
 # list should be two (i-8)
 ~/d > sosy items:list
 #! start code
-  x.data.table.list.size.should.equal 2
+  x.data.tables[0].list.size.should.equal 2
 #! end code
 
 # delete help should work (i-9)

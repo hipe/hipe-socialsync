@@ -5,7 +5,7 @@ require 'hipe-core/test/bacon-extensions'
 
 
 # You may not want to edit this file.  It was generated from data in "aaa-db.screenshots"
-# by hipe-cli gentest on 2009-12-29 07:10.
+# by hipe-cli gentest on 2009-12-30 22:41.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -17,39 +17,10 @@ require 'hipe-core/test/bacon-extensions'
 
 describe "Db tests (generated tests)" do
 
-  it "sosy db:archive (db-0)" do
+  it "sosy ping (db-0)" do
     @app = Hipe::SocialSync::App.new(['-e','test'])
-    x = @app.run(["db:archive"])
-    x.to_s.should.match %r{^moved [^ ]+ to|database file doesn't exist}i
-  end
-
-  it "sosy db:archive (db-1)" do
-    x = @app.run(["db:archive"])
-    x.to_s.should.match %r{^database file doesn't exist}i
-  end
-
-  it "sosy db:init (db-2)" do
-    x = @app.run(["db:init"])
-    x.to_s.should.match %r{now it exists}i
-  end
-
-  it "sosy db:init (db-3)" do
-    x = @app.run(["db:init"])
-    x.to_s.should.match %r{file already exists}i
-  end
-
-  it "sosy db:archive -o 'data/test.db' (db-4)" do
-    x = @app.run(["db:archive", "-o", "data/test.db"])
-    x.to_s.should.match %r{File must not exist}i
-  end
-
-  it "sosy db:list (db-5)" do
-    x = @app.run(["db:list"])
-    x.to_s.should.match %r{path.+size.+atime.+ctime}i
-  end
-
-  it "sosy db:auto-migrate (db-6)" do
-    x = @app.run(["db:auto-migrate"])
-    x.to_s.should.match %r{The -F option is required to carry out this request}i
+    x = @app.run(["ping"])
+    puts "SKIPPING aaa file"
+    1.should.equal 1
   end
 end

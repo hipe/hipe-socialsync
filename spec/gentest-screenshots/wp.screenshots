@@ -1,4 +1,4 @@
-# bacon -n spec/spec_wp-genned.rb
+# bacon spec/spec_wp-genned.rb
 # bacon -e '$hipe_env = "dev"' spec/spec_wp-genned.rb
 # hipe-cli gentest spec/gentest-screenshots/*
 # hipe-cli gentest spec/gentest-screenshots/wp.screenshots
@@ -70,7 +70,7 @@ Added blog entry (ours: #3, theirs: #103).
 Added blog entry (ours: #4, theirs: #201).
   
 # add item tumblr tuser1 (admin@admin) 901 camel
-~/d > sosy items:add tumblr tuser1 901 "ignore author" "a camel content" kw1,kw2,kw3 2008-01-06 published "my camel" admin@admin  
+~/d > sosy items:add --source 4 tumblr tuser1 901 "ignore author" "a camel content" kw1,kw2,kw3 2008-01-06 published "my camel" admin@admin  
 Added blog entry (ours: #5, theirs: #901).
 
 

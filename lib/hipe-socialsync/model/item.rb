@@ -1,4 +1,3 @@
-
 module Hipe::SocialSync::Model
   class Item
     include DataMapper::Resource
@@ -8,6 +7,8 @@ module Hipe::SocialSync::Model
     belongs_to :account
     has 1, :user, :through => :account
     has 1, :service, :through => :account
+    belongs_to :source, :model => 'Item', :required => false
+    has n, :targets, :model => 'Item', :child_key => [:source_id]
 
     property :foreign_id, Integer, :required => true
     property :author, String, :length => (2..40)
@@ -36,13 +37,14 @@ module Hipe::SocialSync::Model
     def one_word; truncate(title,15).inspect end
 
     def self.kreate(account_obj, foreign_id, author_str, content_str,
-         keywords_str, published_at, status, title, current_user_obj)
+         keywords_str, published_at, status, title, current_user_obj, opts)
       published_at = to_time_or_throw published_at
       kind_of_or_throw :user, current_user_obj, User
       kind_of_or_throw 'date/time', published_at, DateTime
       kind_of_or_throw :account, account_obj, Account
       kind_of_or_throw :keywords, keywords_str, String
       md5 = MD5.new(content_str).to_s
+      source_obj = opts.source ? Item.first_or_throw(:id => opts.source) : nil
       obj = self.create(
         :account        => account_obj,
         :foreign_id     => foreign_id,
@@ -51,6 +53,7 @@ module Hipe::SocialSync::Model
         :content_md5    => md5,
         :keywords       => keywords,
         :published_at   => published_at,
+        :source         => source_obj,
         :status         => status,
         :title          => title
       )

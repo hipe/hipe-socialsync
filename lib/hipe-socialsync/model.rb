@@ -320,7 +320,7 @@ module Hipe::SocialSync::Model
     property :name_credential, String, :length => (1..20)
 
     def one_word
-      %{#{name_credential}(#{service.name})}
+      %{#{service.name}/#{name_credential}}
     end
 
     def self.kreate(service_name, name_credential, user_obj)

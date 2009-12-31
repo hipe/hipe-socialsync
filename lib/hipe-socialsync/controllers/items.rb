@@ -1,8 +1,6 @@
-require 'hipe-core/lingual/ascii-typesetting'
 module Hipe::SocialSync::Plugins
   class Items
     include Hipe::Cli
-    include Hipe::AsciiTypesetting::Methods
     include Hipe::SocialSync::Model
     include Hipe::SocialSync::ControllerCommon
     cli.out.klass = Hipe::SocialSync::GoldenHammer
@@ -11,7 +9,9 @@ module Hipe::SocialSync::Plugins
     cli.does(:add, "add an entry and asociate it w/ an account") do
        option('-h','--help',&help)
        option('-d', '--[no-]dry', "Dry run.  Does everything the same but doesn't write to the database.")
-
+       option('-s', '--source ID', "If this blog is a clone, what is the source item id?") do |it|
+         it.must_be_positive_integer()
+       end
        required('service-name')
        required('name-credential')
        required('foreign-id')
@@ -38,7 +38,7 @@ module Hipe::SocialSync::Plugins
         item = Object.new # openstruct won't work
         def item.id; 'dry-run' end
       else
-        item = Item.kreate(acct, foreign_id, author, content, keywords_str, published_at, status, title, user)
+        item = Item.kreate(acct, foreign_id, author, content, keywords_str, published_at, status, title, user, opts)
       end
       out << %{Added blog entry (ours: ##{item.id}, theirs: ##{foreign_id}).}
       out
@@ -55,7 +55,7 @@ module Hipe::SocialSync::Plugins
       d.common_template = :tables
       d.tables = []
 
-      item_table = self.table
+      item_table = self.class.table
       item_table.list = [item]
       item_table.axis = :horizontal
       d.tables << item_table
@@ -73,19 +73,22 @@ module Hipe::SocialSync::Plugins
       out
     end
 
-    def table
-      controller = self
+    def self.table
       Hipe::Table.make do
+        extend Hipe::SocialSync::ViewCommon
         self.name = 'items'
         field(:id){|x| x.id}
         field(:theirs){|x| x.foreign_id}
         field(:user){|x| x.account.user.one_word }
         field(:service){|x| x.account.service.name}
         field(:name_cred){|x| x.account.name_credential}
-        field(:published_at){|x| x.published_at.strftime('%Y-%m-%d %H:%I:%S')}
-        field(:title){|x| controller.truncate(x.title,10) }
-        field(:excerpt){|x| controller.truncate(x.content,10) }
+        field(:account){|x| x.account.one_word }
+        field(:published_at){|x| x.published_at.strftime('%Y-%m-%d')}
+        field(:title){|x| truncate(x.title,10) }
+        field(:excerpt){|x| truncate(x.content,10) }
         field(:last_event){|x| x.last_event.as_relative_sentence(x) }
+        field(:source){|x| x.source ? x.source.account.one_word : '' }
+        field(:targets){|x| t=x.targets; t.size == 0 ? '0' : t.map{|y| y.account.one_word }}
       end
     end
 
@@ -118,8 +121,8 @@ module Hipe::SocialSync::Plugins
         argument_error(%{You can't view items of other users})
       end
 
-      table = self.table
-      table.show_only :id,:theirs,:user,:service,:name_cred,:published_at,:title,:excerpt
+      table = self.class.table
+      table.show_only :id,:theirs,:user,:account,:published_at,:title,:excerpt,:source,:targets
 
       items = get_items(table, user, svc, acct)
       items[0].last_event
@@ -132,9 +135,9 @@ module Hipe::SocialSync::Plugins
         items = get_items(table, user, svc, acct)
         out.merge! sub_out
       end
-      out.data.common_template = 'table'
+      out.data.common_template = 'tables'
       table.list = items
-      out.data.table = table
+      out.data.tables = [table]
       out
     end
     def get_items(table, user, svc, acct)

@@ -5,7 +5,7 @@ require 'hipe-cli'
 require 'hipe-core/infrastructure/exception-like'
 require 'hipe-core/struct/open-struct-extended'
 require 'hipe-core/struct/table'
-# require 'hipe-core/logic/rules-lite'
+require 'hipe-core/lingual/ascii-typesetting'
 require 'dm-core'
 require 'dm-aggregates'
 
@@ -139,6 +139,7 @@ module Hipe
       end
     end
     module ViewCommon
+      include Hipe::AsciiTypesetting::Methods
       def date_format(at)
         at.strftime('%Y-%m-%d %H:%I:%S')
       end

@@ -3,7 +3,7 @@ require 'hipe-socialsync'
 
 
 # You may not want to edit this file.  It was generated from data in "wp.screenshots"
-# by hipe-cli gentest on 2009-12-29 07:10.
+# by hipe-cli gentest on 2009-12-30 22:41.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -88,7 +88,7 @@ describe "Wp tests (generated tests)" do
   end
 
   it "# add item tumblr tuser1 (admin@admin) 901 camel (wp-10)" do
-    x = @app.run(["items:add", "tumblr", "tuser1", "901", "ignore author", "a camel content", "kw1,kw2,kw3", "2008-01-06", "published", "my camel", "admin@admin"])
+    x = @app.run(["items:add", "--source", "4", "tumblr", "tuser1", "901", "ignore author", "a camel content", "kw1,kw2,kw3", "2008-01-06", "published", "my camel", "admin@admin"])
     y = "Added blog entry (ours: #5, theirs: #901)."
     x.to_s.chomp.should.equal y
   end

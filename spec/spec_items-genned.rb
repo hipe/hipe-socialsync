@@ -3,7 +3,7 @@ require 'hipe-socialsync'
 
 
 # You may not want to edit this file.  It was generated from data in "items.screenshots"
-# by hipe-cli gentest on 2009-12-29 07:13.
+# by hipe-cli gentest on 2009-12-30 22:41.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -64,7 +64,7 @@ describe "Item tests (generated tests)" do
 
   it "# list should be two (i-8) (i-8)" do
     x = @app.run(["items:list"])
-    x.data.table.list.size.should.equal 2
+    x.data.tables[0].list.size.should.equal 2
   end
 
   it "# delete help should work (i-9) (i-9)" do
