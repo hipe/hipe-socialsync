@@ -3,6 +3,7 @@ require 'rubygems'
 require 'ruby-debug'
 require 'hipe-cli'
 require 'hipe-core/infrastructure/exception-like'
+require 'hipe-core/struct/hash-like-with-factories'
 require 'hipe-core/struct/open-struct-extended'
 require 'hipe-core/struct/table'
 require 'hipe-core/lingual/ascii-typesetting'
@@ -14,35 +15,36 @@ module Hipe
     VERSION = '0.0.3'
     DIR = File.expand_path('../..',__FILE__)
     module Plugins; end
-    module ExceptionUpgrade
-      def valid?; false end
-    end
     class Exception < Hipe::Exception
       include Hipe::ExceptionLike
       self.modules = [Hipe::SocialSync]
-      #def self.upgrade(exception)
-      #  return if exception.respond_to? :valid?
-      #  exception.extend ExceptionUpgrage
-      #  exception
-      #end
       def valid?; false end
     end
-    # soft exception and graceful list last seen 30db43a9797bd11e41c2616aaefc956e730f7149
+    module ViewCommon
+      include Hipe::AsciiTypesetting::Methods
+      def date_format(at)
+        at.strftime('%Y-%m-%d %H:%I:%S')
+      end
+      def humanize_lite(str)
+        str.to_s.gsub('_',' ')
+      end
+    end
+    module ControllerCommon
+      def current_user(identifier)
+        return identifier if identifier.kind_of? Model::User
+        Hipe::SocialSync::Model::User.first_or_throw :email=>identifier
+      end
+      def argument_error(*args)
+        throw :invalid, Model::ValidationErrors[*args]
+      end
+    end
+    # it is likely that anything we add here we might want to push up.  consider making a common
+    # template api.
     class GoldenHammer < Hipe::Io::GoldenHammer
-      def initialize(str=nil)
-        super()
-        @string << str.to_s if str
-      end
-      def to_s
-        if (!valid?)
-          super
-        elsif (data.common_template)
-          send(%{#{data.common_template}_template})
-        else
-          super
-        end
-      end
-      def tables_template
+      # This is for when to_s is called on a GoldenHammer that has a suggested_template of "tables"
+      # This is just a default rendering strategy for ascii contexts (command-line.)
+      # A web client should render the table(s) itself.
+      def render_tables
         lines = []
         data.tables.each do |table|
           lines << table.render(:ascii)
@@ -50,7 +52,6 @@ module Hipe
         lines.concat all_messages
         lines * "\n"
       end
-      # list template and table template last seen 84ab091a03b144f67f99f49ef8d1316c6d6f48b7
     end
     class App
       include Hipe::Cli
@@ -84,6 +85,14 @@ module Hipe
         filename = md[1]
         filename
       end
+
+      # @return [String] a string (ending in a '/' ?) that corresponds to the root folder where
+      #   (usually writable) data is kept.  This should be the folder *that contains* the folder called data,
+      #   because at the time of this writing, writable folders exist elsewhere other than just under data/
+      #   Also at the time of this writing, this folder is always the root folder of the whole project.
+      #   (This is not to say that the root of the project is writable, just that it may contain arbitrary
+      #   folders that are writable, and there are no writable folders that exist outside of this folder.)
+      def data_path; DIR end
 
       def db_connect
         return false if DataMapper::Repository.adapters.size > 0
@@ -120,23 +129,8 @@ module Hipe
         out
       end
     end
-    module ViewCommon
-      include Hipe::AsciiTypesetting::Methods
-      def date_format(at)
-        at.strftime('%Y-%m-%d %H:%I:%S')
-      end
-      def humanize_lite(str)
-        str.to_s.gsub('_',' ')
-      end
-    end
-    module ControllerCommon
-      def current_user(identifier)
-        return identifier if identifier.kind_of? Model::User
-        Hipe::SocialSync::Model::User.first_or_throw :email=>identifier
-      end
-      def argument_error(*args)
-        throw :invalid, Model::ValidationErrors[*args]
-      end
-    end
   end # SocialSync
 end # Hipe
+# list template and table template last seen 84ab091a03b144f67f99f49ef8d1316c6d6f48b7
+# ExceptionUpgrade last seen 84ab091a03b144f67f99f49ef8d1316c6d6f48b7
+# soft exception and graceful list last seen 30db43a9797bd11e41c2616aaefc956e730f7149
