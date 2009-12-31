@@ -30,7 +30,7 @@ module Hipe::SocialSync::Plugins
       user_obj = current_user(current_user_email)
       accts = Account.all(:user=>user_obj,:order=>[:id.desc])
       out = cli.out.new
-      out.data.common_template = 'tables'
+      out.suggested_template = 'tables'
       out.data.tables = [Hipe::Table.make do
         field(:id){|x| x.id}
         field(:service_name){|x| x.service.name}

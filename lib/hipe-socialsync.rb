@@ -1,8 +1,10 @@
 #!/usr/bin/env ruby
 require 'rubygems'
 require 'ruby-debug'
+require 'pathname'
 require 'hipe-cli'
 require 'hipe-core/infrastructure/exception-like'
+require 'hipe-core/infrastructure/strict-setter-getter'
 require 'hipe-core/struct/hash-like-with-factories'
 require 'hipe-core/struct/open-struct-extended'
 require 'hipe-core/struct/table'
@@ -22,11 +24,18 @@ module Hipe
     end
     module ViewCommon
       include Hipe::AsciiTypesetting::Methods
-      def date_format(at)
-        at.strftime('%Y-%m-%d %H:%I:%S')
+      def date_format at
+        at.strftime '%Y-%m-%d %H:%I:%S'
       end
-      def humanize_lite(str)
-        str.to_s.gsub('_',' ')
+      def humanize_lite str
+        str.to_s.gsub '_', ' '
+      end
+      # If you want to display a path but don't want to risk revealing the absolute path
+      #
+      def relativize_path path
+        base_dir = Pathname.new(File.expand_path(DIR))
+        other_dir = Pathname.new(File.expand_path(path))
+        other_dir.relative_path_from base_dir
       end
     end
     module ControllerCommon
@@ -40,6 +49,14 @@ module Hipe
     end
     # it is likely that anything we add here we might want to push up.  consider making a common
     # template api.
+
+    class Transports < Hipe::HashLikeWithFactories
+      # Transports are objects that talk to external services.
+      # This models a collection of all the available transports.
+      # The individual transport classes will register themselves with this class when they are loaded
+      #
+    end
+
     class GoldenHammer < Hipe::Io::GoldenHammer
       # This is for when to_s is called on a GoldenHammer that has a suggested_template of "tables"
       # This is just a default rendering strategy for ascii contexts (command-line.)
@@ -75,6 +92,10 @@ module Hipe
         else
           @prepend = []
         end
+      end
+
+      def transports
+        @transports ||= Transports.new
       end
 
       def db_path
