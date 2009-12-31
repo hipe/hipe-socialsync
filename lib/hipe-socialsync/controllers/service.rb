@@ -26,8 +26,7 @@ module Hipe::SocialSync::Plugins
       option('-h',&help)
     }
     def list(opts)
-      out = cli.out.new
-      out.data.common_templates = 'tables'
+      out = cli.out.new :suggested_template => :tables
       svcs = Service.all :order => [:name.asc]
       out.data.tables = [Hipe::Table.make do
         field(:id){|x| x.id}; field(:name){|x| x.name}

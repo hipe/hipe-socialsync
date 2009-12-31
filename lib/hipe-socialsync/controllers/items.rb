@@ -50,9 +50,8 @@ module Hipe::SocialSync::Plugins
     def view(id)
       item = Item.first_or_throw(:id=>id)
 
-      out = cli.out.new
+      out = cli.out.new :suggested_template => :tables
       d = out.data
-      d.common_template = :tables
       d.tables = []
 
       item_table = self.class.table
@@ -127,15 +126,13 @@ module Hipe::SocialSync::Plugins
       items = get_items(table, user, svc, acct)
       items[0].last_event
 
-
-      out = cli.out.new
+      out = cli.out.new :suggested_template => :tables
       if command_name
         sub_out = do_aggregate(items, command_name, current_user_email, opts)
         acct.reload if acct
         items = get_items(table, user, svc, acct)
         out.merge! sub_out
       end
-      out.data.common_template = 'tables'
       table.list = items
       out.data.tables = [table]
       out

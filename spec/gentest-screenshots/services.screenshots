@@ -25,7 +25,7 @@ Usage: sosy services:add [-h] name current_user_email
 Created service "eraseme".  Now there are three services.
 ~/d > sosy -e test services:list
 #! start code
-  x.data.table.list.count.should.equal(3)
+  x.data.tables[0].list.count.should.equal(3)
 #! end code
 ~/d > sosy services:delete notthere admin@admin
 Can't find service with name "notthere".

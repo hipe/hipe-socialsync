@@ -46,9 +46,8 @@ module Hipe::SocialSync::Plugins
     cli.does('list','peruse')
     # File.atime(), ctime() etc last seen bcdd7bf10439f3a5744be1a6f4c8ff8db9313f4ae. we wanted ls -lh for file size
     def list(opts=nil)
-      out = cli.out.new
+      out = cli.out.new :suggested_template
       o = out.data
-      o.common_template = 'tables'
       o.tables = [Hipe::Table.make do
         field(:path)  {|x| File.basename(x[0]) }
         field(:size)  {|x| x[1] }

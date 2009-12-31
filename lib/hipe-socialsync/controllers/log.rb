@@ -42,8 +42,7 @@ module Hipe::SocialSync::Plugins
       end
       table = self.class.table
       items = Event.all(query)
-      out = cli.out.new
-      out.data.common_template = 'tables'
+      out = cli.out.new :suggested_template => :tables
       table.list = items
       out.data.tables = [table]
       out

@@ -27,7 +27,7 @@ See "sosy accounts:list -h" for more info.
 
 ~/d > sosy accounts:list  admin@admin
 #! start code
-  x.data.table.list.size.should.equal 0
+  x.data.tables[0].list.size.should.equal 0
 #! end code
 
 ~/d > sosy accounts:add wordprez admin@admin imauser
