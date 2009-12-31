@@ -42,11 +42,6 @@ module Hipe
           super
         end
       end
-      def table_template
-        lines = [data.table.render(:ascii)]
-        lines.concat all_messages
-        lines * "\n"
-      end
       def tables_template
         lines = []
         data.tables.each do |table|
@@ -55,20 +50,7 @@ module Hipe
         lines.concat all_messages
         lines * "\n"
       end
-      #def list_template
-      #  s = Hipe::Io::BufferString.new
-      #  formatter = data.ascii_format_row || lambda{|row| row * ' ' }
-      #  if data.headers
-      #    # s.puts(formatter.call(data.headers).gsub(' ','_'))
-      #    s.puts(formatter.call(data.headers))
-      #    s.puts(formatter.call(Array.new(data.headers.size)).gsub(' ','-'))
-      #  end
-      #  data.list.each do |item|
-      #    s.puts(formatter.call(data.row.call(item)))
-      #  end
-      #  s.puts %{#{data.list.count} #{Extlib::Inflection.pluralize(data.human_name || data.klass.human_name)}}
-      #  s
-      #end
+      # list template and table template last seen 84ab091a03b144f67f99f49ef8d1316c6d6f48b7
     end
     class App
       include Hipe::Cli

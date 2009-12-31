@@ -43,9 +43,9 @@ module Hipe::SocialSync::Plugins
       table = self.class.table
       items = Event.all(query)
       out = cli.out.new
-      out.data.common_template = 'table'
+      out.data.common_template = 'tables'
       table.list = items
-      out.data.table = table
+      out.data.tables = [table]
       out
     end
   end

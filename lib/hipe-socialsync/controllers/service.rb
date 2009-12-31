@@ -27,12 +27,12 @@ module Hipe::SocialSync::Plugins
     }
     def list(opts)
       out = cli.out.new
-      out.data.common_template = 'table'
+      out.data.common_templates = 'tables'
       svcs = Service.all :order => [:name.asc]
-      out.data.table = Hipe::Table.make do
+      out.data.tables = [Hipe::Table.make do
         field(:id){|x| x.id}; field(:name){|x| x.name}
         self.list = svcs
-      end
+      end]
       out
     end
 

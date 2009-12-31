@@ -1,4 +1,4 @@
-# bacon -n '.*' spec/spec_services-genned.rb
+# bacon spec/spec_services-genned.rb
 require 'hipe-socialsync'
 
 
@@ -43,7 +43,7 @@ describe "Service tests (generated tests)" do
 
   it "sosy -e test services:list (s-3)" do
     x = @app.run(["-e", "test", "services:list"])
-    x.data.table.list.count.should.equal(3)
+    x.data.tables[0].list.count.should.equal(3)
   end
 
   it "sosy services:delete notthere admin@admin (s-4)" do

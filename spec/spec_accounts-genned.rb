@@ -1,4 +1,4 @@
-# bacon -n '.*' spec/spec_accounts-genned.rb
+# bacon spec/spec_accounts-genned.rb
 require 'hipe-socialsync'
 require 'bacon'
 require 'hipe-core/test/bacon-extensions'
@@ -47,7 +47,7 @@ describe "Account tests (generated tests)" do
 
   it "sosy accounts:list  admin@admin (a-3)" do
     x = @app.run(["accounts:list", "admin@admin"])
-    x.data.table.list.size.should.equal 0
+    x.data.tables[0].list.size.should.equal 0
   end
 
   it "sosy accounts:add wordprez admin@admin imauser (a-4)" do

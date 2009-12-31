@@ -48,8 +48,8 @@ module Hipe::SocialSync::Plugins
     def list(opts=nil)
       out = cli.out.new
       o = out.data
-      o.common_template = 'table'
-      o.table = Hipe::Table.make do
+      o.common_template = 'tables'
+      o.tables = [Hipe::Table.make do
         field(:path)  {|x| File.basename(x[0]) }
         field(:size)  {|x| x[1] }
         field(:atime) do |x|
@@ -58,7 +58,7 @@ module Hipe::SocialSync::Plugins
                               En.time_ago_in_words(time)
         end
         field(:ctime) {|x| En.time_ago_in_words(File.ctime(x[0])) }
-      end
+      end]
 
       db_folder = File.dirname(cli.parent.application.db_path)
       cmd = %{ls -lh #{db_folder}/*db* } << %q{ | awk '{; print $9 "\t" $5 "\t" $6" "$7" "$8  ; }'}

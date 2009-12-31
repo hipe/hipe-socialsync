@@ -30,13 +30,13 @@ module Hipe::SocialSync::Plugins
       user_obj = current_user(current_user_email)
       accts = Account.all(:user=>user_obj,:order=>[:id.desc])
       out = cli.out.new
-      out.data.common_template = 'table'
-      out.data.table = Hipe::Table.make do
+      out.data.common_template = 'tables'
+      out.data.tables = [Hipe::Table.make do
         field(:id){|x| x.id}
         field(:service_name){|x| x.service.name}
         field(:name_credential){|x| x.name_credential}
         self.list = accts
-      end
+      end]
       out
     end
 
