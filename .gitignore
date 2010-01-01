@@ -1,3 +1,4 @@
 pkg/
 hipe-socialsync.gemspec
 coverage/
+spec/writable-tmp/
