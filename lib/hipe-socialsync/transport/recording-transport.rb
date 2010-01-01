@@ -1,7 +1,6 @@
 require 'fakeweb'
 require 'json'
-require 'hipe-socialsync'
-
+require 'md5'
 module Hipe::SocialSync
   class RecordingTransport
     # this is a base class for transports that can optionally record their requests and responses using fakeweb
@@ -19,12 +18,13 @@ module Hipe::SocialSync
     extend Hipe::StrictSetterGetter
     include ViewCommon
 
-    boolean_setter_getters :use_recordings, :record # we override the setters but we want the foo? form
+    boolean_setter_getters :use_recordings, :record, :clobber_recordings # we override the setters but we want the foo? form
     string_setter_getters :base_recordings_dir
 
     def initialize
       @record = false
       @use_recordings = false
+      @clobber_recordings = false
     end
 
     def base_recordings_dir
@@ -39,7 +39,7 @@ module Hipe::SocialSync
       File.join(my_recordings_dir,'manifest.json')
     end
 
-    def use_recordings=(bool)
+    def use_recordings= bool
       raise TypeError.new("need boolean had #{bool.inspect}") unless [TrueClass,FalseClass].detect{|x| bool.kind_of? x}
       return if @use_recordings == bool
       @use_recordings = bool
@@ -47,7 +47,7 @@ module Hipe::SocialSync
       end
     end
 
-    def record=(bool)
+    def record= bool
       raise TypeError.new("need boolean had #{bool.inspect}") unless [TrueClass,FalseClass].detect{|x| bool.kind_of? x}
       return if @record == bool
       @record = bool
@@ -64,10 +64,10 @@ module Hipe::SocialSync
       unless File.exist? base_recordings_dir
         raise "something is really wrong. doesn't exist: #{relativize_path(base_recordings_dir)}"
       end
-      FileUtils.mkdir_p my_recordings_dir
+      FileUtils.mkdir_p File.join(my_recordings_dir,'files')
       @manifest = [
-       {:comment => "This data is part of Hipe::SocialSync::RecordingTransport api"},
-       {:files => []}
+       {"comment" => "This data is part of Hipe::SocialSync::RecordingTransport api"},
+       {"files" => []}
       ]
       save_manifest!
     end
@@ -89,6 +89,32 @@ module Hipe::SocialSync
     def save_manifest!
       json = @manifest.to_json
       File.open(my_manifest_path,'w'){|fh| fh.write json}
+    end
+
+    def record_response url, response
+      idx = index_of_recorded_response url
+      if ! @clobber_recordings and idx
+        raise "response already exists for #{url.inspect}"
+      end
+      unless idx
+        md5 = MD5.new(url).to_s
+        manifest[1]["files"] << { "url" => url, "filename" => md5 }
+        idx = manifest[1]["files"].size - 1
+      end
+      filename = manifest[1]["files"][idx]["filename"]
+      full_path = File.join(my_recordings_dir,'files',filename)
+      File.open(full_path,'w+'){|fh| fh.write response }
+      save_manifest!
+      true
+    end
+
+    def index_of_recorded_response url
+      debugger
+       manifest[1]["files"].index{|x| x["url"] == url }
+    end
+
+    def has_recorded_response? url
+      !! index_of_recorded_response(url)
     end
   end
 end

@@ -2,9 +2,57 @@ module Hipe::SocialSync::Plugins
   class App
     include Hipe::Cli
     include Hipe::SocialSync::ControllerCommon
+    include Hipe::Lingual::English
+
     cli.out.klass = Hipe::Io::GoldenHammer
     cli.does '-h','--help', 'overview of app commands'
     cli.default_command = :help
+
+    cli.does(:transports)
+    def transports(opts=nil)
+      require 'ruby-debug'
+      trans = cli.parent.application.transports
+      path = File.join(Hipe::SocialSync::DIR,'lib','hipe-socialsync','transport')
+      Dir.new(path).map{|entry| /^(.+)\.rb$/=~ entry ? $1 : nil}.compact.each do |basename|
+        require_me = File.join('hipe-socialsync','transport',File.basename(basename))
+        require require_me
+      end
+      instances = {}
+      trans.keys.each do |k|
+        instances[k] = trans.new_instance(k)
+      end
+      t = instances[:tumblr]
+
+      begin
+        t.username = 'hipe'
+        t.as_json = true
+        t.record = true
+        puts "set tumblr things and press continue to read"
+        debugger
+        response = t.read
+        puts "check response"
+        debugger
+      end while true
+
+
+      #instances[:tumblr].read
+      return "donzorz."
+      c = Class.new
+      instances.each do |pair|
+        c.send(:define_method,pair[0]){instances[pair[0]]}
+      end
+      msg = "Play with " << en{np(:the,'transport',instances.keys.map{|x|x.to_s})}.say
+      o = c.new
+      o.instance_eval{ @eval_me = "\n" * 5 + "debugger\n" + msg.dump + "\n" * 5; @file = __FILE__; @line = __LINE__}
+      def o.go
+        puts @eval_me
+        instance_eval @eval_me, @file, @line
+      end
+      o.go
+    end
+
+
+
 
     cli.does(:prune, 'erase temp files and files deemed not worthy.') do
       option('-h',&help)

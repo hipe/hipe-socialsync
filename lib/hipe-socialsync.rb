@@ -55,6 +55,9 @@ module Hipe
       # This models a collection of all the available transports.
       # The individual transport classes will register themselves with this class when they are loaded
       #
+      def new_instance(name)
+        self[name].class.new
+      end
     end
 
     class GoldenHammer < Hipe::Io::GoldenHammer
