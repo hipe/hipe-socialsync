@@ -18,7 +18,7 @@ module Hipe::SocialSync
     extend Hipe::StrictSetterGetter
     include ViewCommon
 
-    boolean_setter_getters :use_recordings, :record, :clobber_recordings # we override the setters but we want the foo? form
+    boolean_setter_getters :use_recordings, :record, :clobber_recordings # we may override the setters but we want the foo? form
     string_setter_getters :base_recordings_dir
 
     def initialize
@@ -44,6 +44,15 @@ module Hipe::SocialSync
       return if @use_recordings == bool
       @use_recordings = bool
       if (bool)
+        mani = manifest
+        base = File.join(my_recordings_dir,'files')
+        mani[1]["files"].each_with_index do |elem,idx|
+          response_file_path = File.join(base, elem["filename"])
+          response = File.read response_file_path
+          FakeWeb.register_uri(elem["method"].to_sym, elem["url"], :response => response)
+        end
+      else
+        raise "turning use_recordings off is not yet implemented"
       end
     end
 
@@ -91,17 +100,19 @@ module Hipe::SocialSync
       File.open(my_manifest_path,'w'){|fh| fh.write json}
     end
 
-    def record_response url, response
+    def record_response method, url, response
+      mani = manifest
       idx = index_of_recorded_response url
       if ! @clobber_recordings and idx
         raise "response already exists for #{url.inspect}"
       end
       unless idx
         md5 = MD5.new(url).to_s
-        manifest[1]["files"] << { "url" => url, "filename" => md5 }
-        idx = manifest[1]["files"].size - 1
+        mani[1]["files"] << { "url" => url, "filename" => md5 }
+        idx = mani[1]["files"].size - 1
       end
-      filename = manifest[1]["files"][idx]["filename"]
+      mani[1]["files"][idx]["method"] = method
+      filename = mani[1]["files"][idx]["filename"]
       full_path = File.join(my_recordings_dir,'files',filename)
       File.open(full_path,'w+'){|fh| fh.write response }
       save_manifest!
