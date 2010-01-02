@@ -33,7 +33,7 @@ module Hipe::Interactive
 
     # the class also gets an interface() method and @interface member. see Interface for more.
     def self.included klass
-      interface_prototype = Interface.new
+      interface_prototype = Interface.new(klass)
       klass.instance_variable_set('@interface_prototype',interface_prototype) # why eigenclass instead? @todo
       klass.send(:extend, InterfaceReflectorClassMethods)
     end
@@ -50,6 +50,7 @@ module Hipe::Interactive
     def interface_prototype
       @interface_prototype
     end
+    alias_method :interface, :interface_prototype  # hm..
   end
 
   class Interface
@@ -75,7 +76,8 @@ module Hipe::Interactive
     # @private { if present, do a semi-deep copy from this interface, which is probably
     #            the prototype interface that the class defined}
 
-    def initialize(prototype = nil)
+    def initialize(klass = nil, prototype = nil)
+      @klass = klass # just to implement define()
       if prototype.nil?
         @commands = Commands.new
         @frozen_accessor = nil # callers should be able to use the accesors of the Commands object in a read-only style
@@ -85,9 +87,13 @@ module Hipe::Interactive
       end
     end
 
+    def define &block
+      @klass.instance_eval(&block)
+    end
+
     # why two levels? because for now command-objects don't point to anything but primitives
     def dup_two_levels
-      self.class.new self
+      self.class.new @klass, self
     end
 
     # @return [Array] a list of visible commands
@@ -105,6 +111,11 @@ module Hipe::Interactive
       @frozen_accesssor ||= @commands.dup.freeze
     end
 
+    # @api-private accessor for the underlying gash
+    def _commands
+      @commands
+    end
+
     def add_command name, *args
       @frozen_accessor = nil
       @commands << Command.new(name, *args)
@@ -113,6 +124,11 @@ module Hipe::Interactive
     def hide(*names); with(*names){|x| x.hide} end
 
     def show(*names); with(*names){|x| x.show} end
+
+    def == other
+      raise TypeError.new("Can't compare this to #{other.inspect}") unless other.kind_of? Interface
+      _commands == other._commands
+    end
 
     protected
       def with *names
@@ -176,9 +192,30 @@ module Hipe::Interactive
       @order.size
     end
 
-    def [](name)
+    def [] name
       @table[name]
     end
+
+    def eql? o
+      self.subset? o and o.subset? self
+    end
+
+    alias_method :==, :eql?
+
+    def subset? other
+      raise TypeError.new("Can't compare this to #{other.inspect}") unless self.class === other
+      other_table = other.table
+      return false if (@table.keys - other_table.keys).size > 0
+      @table.each do |k,command|
+        unless command == other_table[k]
+          return false
+        end
+      end
+      true
+    end
+
+    protected
+    attr_reader :table
   end
 
   # if you ever end up pointing to other objects, see dup_two_levels above, and implement dup() appropriately
@@ -201,6 +238,17 @@ module Hipe::Interactive
         end
       end
     end
+
+    # We determine if we are equal to another command only by if we have equal values
+    # for all of our strict setter getters
+    def == o
+      return false unless o.kind_of? self.class
+      self.class.strict_setter_getters.each do |attrib|
+        return false unless send(attrib.name) == o.send(attrib.name)
+      end
+      return true
+    end
+
     def hide; self.visible = false end
     def show; self.visible = true  end
     def hidden?; ! visible end
