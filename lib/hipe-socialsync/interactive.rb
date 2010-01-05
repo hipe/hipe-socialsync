@@ -1,4 +1,6 @@
-require 'hipe-core/infrastructure/strict-setter-getter'
+# bacon spec/hipe-interactive/spec_interactive.rb
+
+require 'hipe-core/loquacious/all'
 
 module Hipe::Interactive
   # this is an experimental library that is similar on the surface to Hipe::Cli
@@ -44,8 +46,18 @@ module Hipe::Interactive
   end
 
   module InterfaceReflectorClassMethods
+    # Add the named method[s] to the public interface of this class.
+    # If you pass it a list of symbols, each of those are expected to be method names that will be turned
+    # into publicly reflected commands.  In this plural form you cannot pass any options.
+    # @see Command#initialize
     def interactive name, *args
-      @interface_prototype.add_command name, *args
+      if (args.select{|x| Symbol===x}.size == args.size)
+        ([name].concat(args)).each do
+          @interface_prototype.add_command name
+        end
+      else
+        @interface_prototype.add_command name, *args
+      end
     end
     def interface_prototype
       @interface_prototype
@@ -220,10 +232,10 @@ module Hipe::Interactive
 
   # if you ever end up pointing to other objects, see dup_two_levels above, and implement dup() appropriately
   class Command
-    extend Hipe::StrictSetterGetter
-    symbol_setter_getters  :name, :method_name
-    boolean_setter_getter :visible
-    string_setter_getter :label
+    extend Hipe::Loquacious::AttrAccessor
+    symbol_accessors  :name, :method_name
+    boolean_accessor :visible
+    string_accessors :label, :description
 
     def initialize name, opts=nil
       raise TypeError.new("opts must be hash") unless opts.nil? || Hash === opts
@@ -243,8 +255,9 @@ module Hipe::Interactive
     # for all of our strict setter getters
     def == o
       return false unless o.kind_of? self.class
-      self.class.strict_setter_getters.each do |attrib|
-        return false unless send(attrib.name) == o.send(attrib.name)
+      self.class.defined_accessors.each do |pair|
+        name, attrib = *pair
+        return false unless send(name) == o.send(name)
       end
       return true
     end

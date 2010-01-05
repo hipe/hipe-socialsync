@@ -4,26 +4,30 @@ require 'md5'
 module Hipe::SocialSync
   class RecordingTransport
     # this is a base class for transports that can optionally record their requests and responses using fakeweb
+    # it's also a general base class.  if we really really needed to we could break it up more but probably won't neeed to
 
-    # create a class method to set and get the transport name (for child classes)
+    extend Hipe::Loquacious::AttrAccessor
+    include ViewCommon
+    Response = Hipe::Cli::Out.new
+    Response.klass = Hipe::Io::GoldenHammer
+
     class << self
-      extend Hipe::StrictSetterGetter
-      symbol_setter_getter :transport_name
+      extend Hipe::Loquacious::AttrAccessor
+      symbol_accessor :transport_name
       def register_transport_as name
         self.transport_name = name
         Transports.register_factory transport_name, self
       end
     end
 
-    extend Hipe::StrictSetterGetter
-    include ViewCommon
-
-    boolean_setter_getters :use_recordings, :record, :clobber_recordings # we may override the setters but we want the foo? form
-    string_setter_getters :base_recordings_dir
+    boolean_accessor :read_recordings
+    boolean_accessor :write_recordings
+    boolean_accessor :clobber_recordings
+    string_accessors :base_recordings_dir
 
     def initialize
-      @record = false
-      @use_recordings = false
+      @write_recordings = false
+      @read_recordings = false
       @clobber_recordings = false
     end
 
@@ -39,11 +43,12 @@ module Hipe::SocialSync
       File.join(my_recordings_dir,'manifest.json')
     end
 
-    def use_recordings= bool
-      raise TypeError.new("need boolean had #{bool.inspect}") unless [TrueClass,FalseClass].detect{|x| bool.kind_of? x}
+    def read_recordings= bool
+      raise ArgumentError.new("need boolean had #{bool.inspect}") unless [TrueClass,FalseClass].detect{|x| bool.kind_of? x}
       return if @use_recordings == bool
       @use_recordings = bool
       if (bool)
+        FakeWeb.allow_net_connect = false # raises FakeWeb::NetConnectNotAllowedError
         mani = manifest
         base = File.join(my_recordings_dir,'files')
         mani[1]["files"].each_with_index do |elem,idx|
@@ -52,14 +57,14 @@ module Hipe::SocialSync
           FakeWeb.register_uri(elem["method"].to_sym, elem["url"], :response => response)
         end
       else
-        raise "turning use_recordings off is not yet implemented"
+        raise "turning read_recordings off is not yet implemented"
       end
     end
 
-    def record= bool
-      raise TypeError.new("need boolean had #{bool.inspect}") unless [TrueClass,FalseClass].detect{|x| bool.kind_of? x}
-      return if @record == bool
-      @record = bool
+    def write_recordings= bool
+      raise ArgumentError.new("need boolean had #{bool.inspect}") unless [TrueClass,FalseClass].detect{|x| bool.kind_of? x}
+      return if @write_recordings == bool
+      @write_recordings = bool
       if (bool)
         dir = my_recordings_dir
         unless File.exist? dir
@@ -91,22 +96,40 @@ module Hipe::SocialSync
       true
     end
 
+    def json_parser_for source
+      JSON::Ext::Parser.new(source)
+    end
+
+    def json_parse source
+      json_parser_for(source).parse
+    end
+
+    def json_prettify_string str
+      JSON::pretty_generate(json_parse(str))
+    end
+
     def manifest
-      @manifest ||= JSON.parse File.read(my_manifest_path)
+      @manifest ||= json_parse File.read(my_manifest_path)
     end
 
     def save_manifest!
-      json = @manifest.to_json
+      json = json_prettify_string @manifest.to_json
       File.open(my_manifest_path,'w'){|fh| fh.write json}
     end
 
+    # @return [GoldenHammer] response object
     def record_response method, url, response
+      method = method.to_s
+      my_response = Response.new
       mani = manifest
       idx = index_of_recorded_response url
       if ! @clobber_recordings and idx
-        raise "response already exists for #{url.inspect}"
+        raise "Response already exists for #{url.inspect}.  Do you want to turn @clobber_recordings on?"
       end
-      unless idx
+      if idx
+        verb = 'Rewrote'
+      else
+        verb = 'Wrote'
         md5 = MD5.new(url).to_s
         mani[1]["files"] << { "url" => url, "filename" => md5 }
         idx = mani[1]["files"].size - 1
@@ -114,14 +137,14 @@ module Hipe::SocialSync
       mani[1]["files"][idx]["method"] = method
       filename = mani[1]["files"][idx]["filename"]
       full_path = File.join(my_recordings_dir,'files',filename)
-      File.open(full_path,'w+'){|fh| fh.write response }
+      File.open(full_path,'w+'){|fh| fh.write response}
       save_manifest!
-      true
+      my_response.puts "#{verb} response for #{method.upcase} #{url} to #{relativize_path(full_path)}"
+      my_response
     end
 
     def index_of_recorded_response url
-      debugger
-       manifest[1]["files"].index{|x| x["url"] == url }
+      manifest[1]["files"].index{|x| x["url"] == url }
     end
 
     def has_recorded_response? url

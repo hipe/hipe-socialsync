@@ -1,3 +1,7 @@
+require "hipe-socialsync/interactive"
+require 'abbrev'
+require 'json'
+
 module Hipe::SocialSync::Plugins
   class App
     include Hipe::Cli
@@ -9,48 +13,117 @@ module Hipe::SocialSync::Plugins
     cli.default_command = :help
 
     cli.does(:transports)
+
+    # this might be our first command-line-only interface.  keep it light
     def transports(opts=nil)
-      require 'ruby-debug'
-      trans = cli.parent.application.transports
-      path = File.join(Hipe::SocialSync::DIR,'lib','hipe-socialsync','transport')
-      Dir.new(path).map{|entry| /^(.+)\.rb$/=~ entry ? $1 : nil}.compact.each do |basename|
-        require_me = File.join('hipe-socialsync','transport',File.basename(basename))
-        require require_me
+      @transports = cli.parent.application.transports
+      @transports.load_all
+      return "there are no transports." unless @transports.size > 0
+      response = catch(:quit) do
+        transport = prompt_trans
+        begin
+          puts hr
+          puts transport.inspect
+          puts hr
+          command_names = transport.interface.commands.map{|x| x.name } << :quit
+          list = command_names.map{|x| %{[#{x}]}}
+          puts "enter <name> = <value>"
+          puts "or type the beginning of"<<(list.size > 1 ? ' one of ' : ' ') <<
+            en{np(:the,'command',list.size,:say_count => false)}.say
+          puts en{list(list)}.or
+          puts hr
+          print ": "
+          entered = gets.chomp
+          cmd = prompt_enum(command_names.map{|_|_.to_s} << "", entered)
+          if (cmd)
+            case cmd
+            when "": next
+            when "quit": throw :quit, "goodbye, thank you"
+            when String:
+              begin
+                resp = transport.send(cmd)  # we trust that the above only allowed thru publicly accessible cmd names
+                puts resp.to_s
+              rescue RuntimeError => e
+                puts e.message
+                next
+              end
+            else raise "huh?"
+            end
+          else
+            if (/^[a-z_]+$/i =~ entered)
+              puts "unrecognized or ambiguous command #{entered.inspect}"
+              next
+            elsif( tree = parse_assignment(entered) )
+              unless(accessor = transport.class.attrs[tree.name])
+                puts %|unrecognized property "#{tree.name}"|
+                next
+              end
+              begin
+                transport.send %{#{accessor.name}=}, tree.value
+              rescue ArgumentError => e
+                puts "Argument error: " << e.message << " for #{accessor.name}"
+                next
+              end
+              next
+            else
+              puts "poorly formed request: #{entered.inspect}"
+              next
+            end
+          end
+        end while true
       end
-      instances = {}
-      trans.keys.each do |k|
-        instances[k] = trans.new_instance(k)
-      end
-      t = instances[:tumblr]
-
-      begin
-        t.username = 'hipe'
-        t.as_json = true
-        t.record = true
-        puts "set tumblr things and press continue to read"
-        debugger
-        response = t.read
-        puts "check response"
-        debugger
-      end while true
-
-
-      #instances[:tumblr].read
-      return "donzorz."
-      c = Class.new
-      instances.each do |pair|
-        c.send(:define_method,pair[0]){instances[pair[0]]}
-      end
-      msg = "Play with " << en{np(:the,'transport',instances.keys.map{|x|x.to_s})}.say
-      o = c.new
-      o.instance_eval{ @eval_me = "\n" * 5 + "debugger\n" + msg.dump + "\n" * 5; @file = __FILE__; @line = __LINE__}
-      def o.go
-        puts @eval_me
-        instance_eval @eval_me, @file, @line
-      end
-      o.go
     end
 
+    def prompt_enum(command_names, enter)
+      if enter == "" and command_names.include?("") then return "" end # abbrev doesn't like empty string
+      abbrev = command_names.map{|x| x.to_s}.abbrev
+      return abbrev[enter]
+    end
+
+    # @return [OpenStruct] tree with name, value or nil.  Raise ArgumentError on JSON parse failures
+    def parse_assignment entered
+      md = nil
+      return nil unless (md = /^ *([a-z_]+) *= *([^ ]|[^ ].*[^ ]) *$/.match(entered))
+      tree = Hipe::OpenStructExtended.new
+      tree.name = md[1].to_sym
+      raw_value = md[2]
+      if ( md = /^'(.*)'$/.match(raw_value))
+        # special case: turn single quotes into double quotes for JSON
+        raw_value = %{"#{md[1]}"}
+      elsif (! /^(?:true|false|-?\d+(?:\.\d+)?|".*")$/.match(raw_value))
+        # special case: bare words get double quotes
+        raw_value = %{"#{raw_value}"}
+      end
+      arr = begin
+        JSON::parse %{[#{raw_value}]}
+      rescue JSON::ParserError => e
+        raise ArgumentError.new(e.message)
+      end
+      raise "Huh?" if arr.size > 1
+      tree.value = arr[0]
+      tree
+    end
+
+    def hr; '-' * 76 end
+
+    def prompt_trans
+      begin
+        transports = @transports
+        puts en{sp(np('available tranport', transports.keys.count ) )}.say << ':'
+        puts @transports.keys.map{|x| x.to_s}.sort * ' '
+        puts hr
+        default = @transports.first.class.transport_name
+        print "type a transport name or 'q' for quit [#{default}]: "
+        name = gets.chomp
+        name = default if name == ''
+        throw(:quit, "thanks, goodbye.") if name == 'q'
+        if @transports.has_key? name.to_sym
+          return @transports.new_instance name.to_sym
+        else
+          puts %|unrecognized transport #{name.inspect}|
+        end
+      end while true
+    end
 
 
 
@@ -91,3 +164,4 @@ module Hipe::SocialSync::Plugins
     end
   end
 end
+# ridiculously cool but ugly meta-programming in 29cbe04e59842d1091d6efddfc653fb921d8d047

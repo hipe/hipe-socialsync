@@ -4,7 +4,7 @@ require 'ruby-debug'
 require 'pathname'
 require 'hipe-cli'
 require 'hipe-core/infrastructure/exception-like'
-require 'hipe-core/infrastructure/strict-setter-getter'
+require 'hipe-core/loquacious/all'
 require 'hipe-core/struct/hash-like-with-factories'
 require 'hipe-core/struct/open-struct-extended'
 require 'hipe-core/struct/table'
@@ -57,6 +57,13 @@ module Hipe
       #
       def new_instance(name)
         self[name].class.new
+      end
+      def load_all
+        path = File.join(DIR,'lib','hipe-socialsync','transport')
+        Dir.new(path).map{|entry| /^(.+)\.rb$/=~ entry ? $1 : nil}.compact.each do |basename|
+          require_me = File.join('hipe-socialsync','transport',File.basename(basename))
+          require require_me
+        end
       end
     end
 

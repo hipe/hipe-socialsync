@@ -1,5 +1,5 @@
 require 'restclient'
-require 'hipe-core/infrastructure/strict-setter-getter'
+require 'hipe-core/loquacious/all'
 require 'hipe-socialsync/transport/recording-transport'
 require 'hipe-core/struct/table'
 require 'hipe-core/struct/open-struct-extended'
@@ -7,30 +7,44 @@ require 'json'
 
 module Hipe::SocialSync
   class TumblrTransport < RecordingTransport
+    # extend Hipe::Loquacious::AttrAccessor   @todo -- deal w/ this vis-a-vis inheiritance
+    include Hipe::Interactive::InterfaceReflector
+
     register_transport_as :tumblr
 
-    extend Hipe::StrictSetterGetter
-    string_setter_getter :generator_name
-    string_setter_getter :name_credential
-    string_setter_getter :username
-    string_setter_getter :password
-    integer_setter_getter :read_offset, :min => 0
-    integer_setter_getter :num_posts, :min => 0
-    symbol_setter_getter :post_type, :enum => [:all, :text, :quote, :photo, :link, :chat, :video, :audio]
-    integer_setter_getter :post_id, :min => 0
-    symbol_setter_getter :filter, :enum => [:text,:none]
-    kind_of_setter_getter :tag, String, NilClass
-    kind_of_setter_getter :search, String, NilClass
-    boolean_setter_getter :as_json
-    attr_reader :response, :json_struct
+    # this reveals a certain part of our "interface" to whoever asks
+    interface.define do
+      interactive :read, :description => "sends a read request to tumblr"
+      interactive :write
+      interactive :response, :description => "view the last response"
+      interactive :response_as_pretty_json
+      interactive :record_this_response
+    end
 
-    BaseUrl = 'http://www.tumblr.com/api'   # http://www.tumblr.com/docs/api#api_write
+    class << self
+      alias_method :attrs, :defined_accessors
+    end
+
+    string_accessor  :generator_name
+    string_accessor  :name_credential
+    string_accessor  :username
+    string_accessor  :password
+    integer_accessor :read_offset, :min => 0
+    integer_accessor :num_posts, :min => 0
+    enum_accessor    :post_type, [:all, :text, :quote, :photo, :link, :chat, :video, :audio]
+    integer_accessor :post_id, :min => 0
+    enum_accessor    :filter, [:text,:none]
+    string_accessor  :tag, :nil => true
+    string_accessor  :search, :nil => true
+    boolean_accessor :ask_for_json
+    boolean_accessor :prettify_json_when_recording
+    attr_reader :response
 
     def initialize
       super
       @generator_name = 'ADE - slow burn'
-      @write_url = 'http://www.tumblr.com/api/write'
-      @read_url = 'http://%s.tumblr.com/api/read'
+      @write_url =     'http://www.tumblr.com/api/write'
+      @read_url =      'http://%s.tumblr.com/api/read'
       @json_read_url = 'http://%s.tumblr.com/api/read/json'
       @username = nil
       @name_credential = nil
@@ -42,98 +56,100 @@ module Hipe::SocialSync
       @filter = :none
       @tag = nil
       @search = nil
-      @as_json = false
+      @ask_for_json = true
+      @prettify_json_when_recording = true
+      @table = nil
     end
 
-    # We override inspect so we see pretty output from interactive irb
-    #
+    def to_table
+      @table ||= begin
+        transport = self
+        Hipe::Table.make do
+          field(:object_id, :visible => false){|x| x.object_id }
+          field(:transport_name){|x| x.class.transport_name }
+          field(:name_credential){|x| x.name_credential.inspect }
+          field(:username){|x| x.username.inspect }
+          field(:password){|x| x.password.nil? ? 'not set' : '********'.inspect }
+          field(:read_offset){|x| x.read_offset.inspect }
+          field(:num_posts){|x| x.num_posts.inspect}
+          field(:post_type){|x| x.post_type.inspect << " (can be " << en{ list(x.class.attrs[:post_type].enum)}.either << ')'}
+          field(:post_id){|x| x.post_id.inspect}
+          field(:filter){|x| x.filter.inspect << " (can be " << en{list(x.class.attrs[:filter].enum)}.either << ')' }
+          field(:tag){|x| x.tag.inspect << "  (search for this tag)"}
+          field(:search){|x| x.search.inspect << " (search for this string)"}
+          field(:ask_for_json){|x| x.ask_for_json.inspect }
+          field(:prettify_json_when_recording){|x| x.prettify_json_when_recording.inspect }
+          field(:read_recordings){|x| x.read_recordings.inspect }
+          field(:write_recordings){|x| x.write_recordings.inspect}
+          field(:clobber_recordings){|x| x.clobber_recordings.inspect}
+          self.axis = :horizontal
+          self.list = [transport]
+          self.labelize = lambda{|x| x.to_s} # don't humanize the labels
+        end
+      end
+    end
+
+    # for pretty output from irb
     def inspect
-      transport = self
-      # %{#{(/^([^ ]*) /.match(super))[1]} @name_credential=#{@name_credential.inspect} @password=} <<
-      # %{#{@password.inspect}>}
-      Hipe::Table.make do
-        field(:object_id){|x| x.object_id }
-        field(:transport_name){|x| x.class.transport_name }
-        field(:name_credential){|x| x.name_credential.inspect }
-        field(:username){|x| x.username.inspect }
-        field(:password){|x| x.password.nil? ? 'nil' : '********'.inspect }
-        field(:read_offset){|x| x.read_offset.inspect }
-        field(:num_posts){|x| x.num_posts.inspect}
-        field(:post_type){|x| x.post_type.inspect << " (can be " << en{ list(x.class.post_type_enum)}.either << ')'}
-        field(:post_id){|x| x.post_id.inspect}
-        field(:filter){|x| x.filter.inspect << " (can be " << en{list(x.class.filter_enum)}.either << ')' }
-        field(:tag){|x| x.tag.inspect << "  (search for this tag)"}
-        field(:search){|x| x.search.inspect << " (search for this string)"}
-        field(:as_json){|x| x.as_json.inspect }
-
-        self.axis = :horizontal
-        self.list = [transport]
-      end.render(:ascii)
+      to_table.render :ascii
     end
 
-    # @return nil on success and Exception on failure. (or raise it?)
+    # @return [GoldenHammer] response object, possibly invalid with exceptions
     def read
-      @resource = nil
-      @get_params = nil
-      @read_url = nil
-      e = nil
+      result = Response.new
+      @resource = @response = nil
+      exception = nil
       begin
         raise RuntimeError.new("you must indicate a username to read") unless @username
-        url = read_url
-        @resource = RestClient::Resource.new(url)
-        @json_struct = nil
-        @response =  @resource.get
-        if (@as_json)
-          # resp = @response.dup
-          # var_thing = resp.slice!(0,22)
-          # should_match = %r{^var tumblr_api_read = $}
-          # unless var_thing.match(should_match)
-          #   raise Exception.new(%{Expecting #{should_match.inspect} had #{var_thing.inspect}})
-          # end
-          # @json_struct = JSON.parse(resp)
-          @json_struct = JSON.parse(@response)
+        @resource = RestClient::Resource.new read_url
+        @response = @resource.get
+        @method = :get
+        result.puts "@response is set."
+        if write_recordings?
+          sub_result = record_this_response
+          result.merge! sub_result
         end
-        debugger
-        if record?
-          record_tumblr_read_response
-        end
-        ret = nil
       rescue RestClient::ResourceNotFound => e
-        ret = RestClient::ResourceNotFound.new("Resource not Found: #{@resource.to_s} (#{e.message.inspect})")
+        msg = "Resource not Found: #{@resource.to_s} (#{e.message.inspect})"
+        exception = RestClient::ResourceNotFound.new(msg)
       rescue JSON::ParserError => e
-        ret = e
+        exception = e
       rescue Exception => e
-        ret = e
+        exception = e
       end
-      raise e if e
-      ret
+      if (exception)
+        result.errors << exception
+      end
+      result
     end
 
-    def record_tumblr_read_response
-      url = @read_url
+    def record_this_response
+      raise RuntimeError.new("where is @repsonse?") unless @response
       response = @response
-      record_response url, response
+      if (@ask_for_json && @prettify_json_when_recording)
+        response = json_prettify_string response
+      end
+      record_response @method, @resource.url, response
+    end
+
+    def response_as_pretty_json
+      json_prettify_string @response
     end
 
     def read_url
-      @read_url ||= begin
-        base_url = (@as_json ? @json_read_url : @read_url) % @username
-        params = parameters_as_string(prepare_read_get_parameters)
-        %{#{base_url}?#{params}}
+      base_url = if @ask_for_json
+        @json_read_url % @username
+      else
+        @read_url % @username
       end
+      params = parameters_as_string(prepare_read_get_parameters)
+      %{#{base_url}?#{params}}
     end
 
     # make sure your keys are strings!
     def parameters_as_string(hash)
       hash.keys.sort.map{|key| %{#{key}=#{hash[key]}}} * '&'
     end
-
-
-    # def write(item)
-    #
-    # end
-
-
 
     def prepare_read_get_parameters
       o = Hipe::OpenStructExtended.new
@@ -187,6 +203,13 @@ module Hipe::SocialSync
     #   end
     # end
     #
+    # resp = @response.dup
+    # var_thing = resp.slice!(0,22)
+    # should_match = %r{^var tumblr_api_read = $}
+    # unless var_thing.match(should_match)
+    #   raise Exception.new(%{Expecting #{should_match.inspect} had #{var_thing.inspect}})
+    # end
+    # @json_struct = JSON.parse(resp)
 
 
   end
