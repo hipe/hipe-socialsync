@@ -309,13 +309,21 @@ module Hipe::SocialSync::Model
     end
   end
 
+  class ItemAccountTargeting
+    include DataMapper::Resource
+    include DataObjectCommon
+    belongs_to :item
+    belongs_to :account
+  end
+
   class Account
     include DataMapper::Resource
     include DataObjectCommon
 
     belongs_to :user
     belongs_to :service
-    has n, :items
+    has n, :items, :model => 'Item', :child_key => [:account_id]
+    has n, :source_items, :model => 'ItemAccountTargeting'
 
     property :name_credential, String, :length => (1..20)
 

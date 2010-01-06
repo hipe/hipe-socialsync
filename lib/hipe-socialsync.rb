@@ -9,6 +9,7 @@ require 'hipe-core/struct/hash-like-with-factories'
 require 'hipe-core/struct/open-struct-extended'
 require 'hipe-core/struct/table'
 require 'hipe-core/lingual/ascii-typesetting'
+require 'hipe-core/lingual/en'
 require 'dm-core'
 require 'dm-aggregates'
 
@@ -24,6 +25,7 @@ module Hipe
     end
     module ViewCommon
       include Hipe::AsciiTypesetting::Methods
+      include Hipe::Lingual::English
       def date_format at
         at.strftime '%Y-%m-%d %H:%I:%S'
       end

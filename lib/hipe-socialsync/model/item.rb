@@ -4,12 +4,12 @@ module Hipe::SocialSync::Model
     include DataObjectCommon
     include Hipe::AsciiTypesetting::Methods
 
-    belongs_to :account
+    belongs_to :account, :model => 'Account'
     has 1, :user, :through => :account
     has 1, :service, :through => :account
     belongs_to :source, :model => 'Item', :required => false
     has n, :targets, :model => 'Item', :child_key => [:source_id]
-
+    has n, :target_accounts, :model => 'ItemAccountTargeting'
     property :foreign_id, Integer, :required => true
     property :author, String, :length => (2..40)
     property :content, Text, :required => true

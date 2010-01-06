@@ -2,10 +2,13 @@ module Hipe::SocialSync::Plugins
   class Items
     include Hipe::Cli
     include Hipe::SocialSync::Model
+    ItemModel = Hipe::SocialSync::Model::Item
     include Hipe::SocialSync::ControllerCommon
     cli.out.klass = Hipe::SocialSync::GoldenHammer
     cli.description = "blog entries"
     cli.does 'help','overview of item commands'
+    cli.default_command = :help
+
     cli.does(:add, "add an entry and asociate it w/ an account") do
        option('-h','--help',&help)
        option('-d', '--[no-]dry', "Dry run.  Does everything the same but doesn't write to the database.")
@@ -38,17 +41,18 @@ module Hipe::SocialSync::Plugins
         item = Object.new # openstruct won't work
         def item.id; 'dry-run' end
       else
-        item = Item.kreate(acct, foreign_id, author, content, keywords_str, published_at, status, title, user, opts)
+        item = ItemModel.kreate(acct, foreign_id, author, content, keywords_str, published_at, status, title, user, opts)
       end
       out << %{Added blog entry (ours: ##{item.id}, theirs: ##{foreign_id}).}
       out
     end
 
     cli.does(:view, "show all details for an individual item") do
-      required('id')
+      option('-h',&help)
+      required('id','id of the item to view')
     end
-    def view(id)
-      item = Item.first_or_throw(:id=>id)
+    def view(id, opts)
+      item = ItemModel.first_or_throw(:id=>id)
 
       out = cli.out.new :suggested_template => :tables
       d = out.data
@@ -86,8 +90,11 @@ module Hipe::SocialSync::Plugins
         field(:title){|x| truncate(x.title,10) }
         field(:excerpt){|x| truncate(x.content,10) }
         field(:last_event){|x| x.last_event.as_relative_sentence(x) }
-        field(:source){|x| x.source ? x.source.account.one_word : '' }
-        field(:targets){|x| t=x.targets; t.size == 0 ? '0' : t.map{|y| y.account.one_word }}
+        field(:source){|x| x.source ? x.source.account.one_word : '(none)' }
+        field(:targets, :label => 'target items'){|x| t=x.targets; t.size == 0 ? '(none)' : t.map{|y| y.account.one_word }}
+        field(:target_accounts) do |x|
+          x.target_accounts.size == 0 ? '(none)' : ( x.target_accounts.map{|y| y.account.one_word} * ',' )
+        end
       end
     end
 
@@ -153,7 +160,7 @@ module Hipe::SocialSync::Plugins
         elsif (user)
           table.field[:user].hide()
           user.items
-        else; Item.all end
+        else; ItemModel.all end
       items
     end
     def do_aggregate list, command, current_user_identifier, opts
@@ -178,7 +185,7 @@ module Hipe::SocialSync::Plugins
     def delete id_or_item, current_user_email, opts
       out = cli.out.new
       user = current_user(current_user_email)
-      out << Item.remove(id_or_item, user)
+      out << ItemModel.remove(id_or_item, user)
       out
     end
   end
