@@ -233,7 +233,7 @@ module Hipe::Interactive
   # if you ever end up pointing to other objects, see dup_two_levels above, and implement dup() appropriately
   class Command
     extend Hipe::Loquacious::AttrAccessor
-    symbol_accessors  :name, :method_name
+    symbol_accessors  :name, :method
     boolean_accessor :visible
     string_accessors :label, :description
 
@@ -266,7 +266,7 @@ module Hipe::Interactive
     def show; self.visible = true  end
     def hidden?; ! visible end
     def hidden= bool; self.visible = ! bool end
-    def method_name; @method_name || @name end
+    def method; @method || @name end
     def label
       @label || @name.to_s.gsub('_', ' ')
     end

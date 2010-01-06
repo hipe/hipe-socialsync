@@ -40,9 +40,9 @@ module Hipe::SocialSync
       manifest[0].should.be.kind_of Hash
       manifest[0].should.satisfy{|x| x.has_key? "comment" }
       manifest[1].should.be.kind_of Hash
-      manifest[1].should.satisfy{|x| x.has_key? "files" }
-      manifest[1]["files"].should.be.kind_of Array
-      manifest[1]["files"].length.should.equal 0
+      manifest[1].should.satisfy{|x| x.has_key? "entries" }
+      manifest[1]["entries"].should.be.kind_of Array
+      manifest[1]["entries"].length.should.equal 0
     end
   end
 end

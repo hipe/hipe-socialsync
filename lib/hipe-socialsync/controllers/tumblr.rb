@@ -1,135 +1,87 @@
-require 'highline/import'    # for password prompting
-require 'hipe-core/lingual/ascii-typesetting'
-require 'hipe-core/struct/daterange'
-require 'openstruct'
+# require 'highline/import'    # for password prompting
 
 module Hipe::SocialSync::Plugins
   class Tumblr
-    Url = 'http://www.tumblr.com/api/write'   # http://www.tumblr.com/docs/api#api_write
     include Hipe::Cli
     include Hipe::SocialSync::Model
+    include Hipe::SocialSync::ViewCommon
     include Hipe::SocialSync::ControllerCommon
-    DATETIME_RE = '\d\d(?:\d\d)?-\d\d?-\d\d?(?: \d\d?:\d\d(?::\d\d)?)?{0,2}'
-    def self.generator_name; 'ADE - slow burn' end
+    ItemModel = Hipe::SocialSync::Model::Item
 
-    cli.does('push',"push the intermediate yml file up to tumblr") do
-      option('--sleep-every SEC',  %{sleep for n seconds after you push these many items, e.g.}+
-                                   %{ --sleep-every="10"}){
-        it.must_be_integer.must_be_in_range(0..60)
-      }
-      option('--sleep-for SEC',%{sleep for this many seconds after n items you push, }+
-                               %{e.g. --sleep-for="0.123" }){
-        it.must_be_in_range(0..600)
-      }
-      option('-r','--date-range RANGE', %{The range of dates of the blogs you want to push, e.g. }+
-          %{"--date-range='2010-01-01 10:10 - 2010-02-01 5:55:55'".  (note that the spaces around the middle }+
-          %{are important. and a date like "2001-02-03" (with no time) actually means midnight of the previous day.}){
-        it.must_match_regexp(%r{^(#{DATETIME_RE})? - (#{DATETIME_RE})?$},"See description for correct dange ranges")
-      }
-      option('-d', '--dry', %{Don't actually push these up, just show a preview of what you would do.})
-      option('--limit LIMIT',"only push this many", :default=>2){
-        it.must_be_integer.must_be_in_range(0..20)
-      }
-      required('from-service','wp|tumblr', ['wp','tumblr'])
-      required('from-service-username')
-      required('email','the email address of your tumblr account')
+    cli.out.klass = Hipe::SocialSync::GoldenHammer
+    cli.does 'help','overview of item commands'
+    cli.description = "blog entries"
+    cli.default_command = :help
+
+    cli.does('push',"push the item(s) to tumblr") do
+      option('--sleep-every SEC',  "sleep for n seconds after you push these many items", :default=>'2') do |it|
+        it.must_match_range(0..60).must_be_integer
+      end
+      option('--sleep-for SEC', "sleep for this many seconds after each n items you push", :default=>'2') do |it|
+        it.must_match_range(0..600)
+      end
+      option('-d', '--dry', "Don't actually push these up, just show a preview of what you would do.")
+      required('ids', 'comma-separated list of ids to push') do |it|
+        it.must_match(/^(\d+(?:,\d+)*)$/)
+      end
+      required 'tumblr_password', 'the password for the account these ids belong to'
+      required 'current_user_email'
     end
 
-    def push from_svc, from_cred, to_cred, current_user_email, opts
-      @out = cli.out.new
-      @password = prompt_for_password
-      @url = Url
-      @to_cred = to_cred
-
-      # validate that objects exist
-      user = User.first!(:email=>current_user_email)
-      svc = Service.first!(:name=>from_svc)
-      acct = Account.first!(:name_credential=>from_cred,:service=>svc,:user=>user)
-
-      @dry = opts.dry
-      @num_pushed = 0
-      @limit = opts.limit
-      date_range = DateRange[opts.date_range] || DateRange::Any
-
-      h = {:order => [:published_at.desc]}
-      h[:account] = acct
-      if (opts.date_range)
-        h[:published_at.lt] = date_range.begin
-        h[:published_at.gt] = date_range.end
+    def push ids, tumblr_password, current_user_email, opts
+      ids = ids[0]
+      ids_arr = ids.split(',').uniq
+      user = current_user current_user_email
+      ids_arr = ids.split(',').map{|x| x.to_i}.uniq
+      items = ItemModel.all :id => ids_arr
+      svc = Service.first_or_throw :name => 'tumblr'
+      if (items.size == 0)
+        return cli.out.new("Couldn't find any blog(s) with id(s): #{ids.inspect}")
       end
-
-      items = Item.all(h)
-      if items.count == 0
-        return (@out.puts(%{no wp items found #{date_range}}))
-      end
-
-      catch(:limit_reached) do
-        items.each do |item|
-          push?(article)
+      items_wo_accts     = {}
+      items_w_mult_accts = {}
+      items.each do |item|
+        accts = item.target_accounts.select{|x| x.account.service == svc }.map{|x| x.account.service }
+        case accts.size
+          when 0: items_wo_accts[item.id] = item
+          when 1: #! ok
+          else   items_w_mult_accts[item.id] = item
         end
       end
-      rescue SocketError => e
-        err={:message=>%{Got a socket error: "#{e.message}" -- Is your internet on?  }+
-          %{Do you *have* the Internet?},:e=>e}
-      rescue RestClient::RequestFailed => e
-        pd = @post_data.clone
-        pd[:body] = Hipe::AsciiTypesetting.truncate(@post_data[:body],60)
-        pp(pd, str='')
-        err={:message=>%{Failed to push blog entry to #{@url}! Got an exception of type "#{e.class}" }+
-        %{that says: "#{e.message}".  We got this response body: "#{e.response.body}".\n\n}+
-        %{We tried to push this blog entry: \n#{s}\n\n(end of error)}, :e=>e}
+      out = cli.out.new
+      if items_w_mult_accts.size > 0
+        out.errors << ("For now we can't handle pushing items that point to more than one tumblr account " <<
+        %{(item id(s): (#{items_w_mult_accts.map{|x| x.id}.sort.join(',')}))} )
       end
-      raise Exception[err[:message],{:original_exception=>err[:e]}] if err
-      @out.puts "done pushing #{@num_pushed} articles to tumblr."
+      if items_wo_accts.size > 0
+        the_ids = items_wo_accts.values.map{|x| x.id}.sort
+        x = <<-HERE.gsub(/^        |\n/,'').strip
+        For now items to push must explicitly have target accounts.  Please add a tumblr account as a target to
+        HERE
+        y = en{np(:the, 'item', pp('with', np(:the, 'id', the_ids.size, :say_count=>false)), the_ids )}.say
+        out.errors << %{#{x} #{y}}
+      end
+      acct = items.first.target_accounts.detect{|x| x.account.service = svc }
+      if (acct && acct.user != user)
+        out2 = cli.out.new
+        out2.errors << "account(s) of item(s) doesn't/don't belong to you"
+        return out2
+      end
+      return out unless out.valid?
+      actually_push_these items, acct, tumblr_password, user, opts
     end
+    def actually_push_these items, acct, tumblr_password, user, opts
+      transport = cli.parent.application.transports[:tumblr]
+      transport.name_credential = acct.name_credential
+      transport.password = tumblr_password
+      transport.username = acct.name_credential
+      items.each do |item|
+        transport.item_to_push = item
 
-    def push? item
-      if (@sleep_every && (@num_pushed > 0 && (@num_pushed % @sleep_every == 0)))
-        @out.puts %{After pushing #{@sleep_every} items, will sleep for #{@sleep_for} seconds}
-        sleep @sleep_for
+        HERE
+
+
       end
-
-      if item.content.strip.empty?
-        @out.puts %{skipping article with empty body from #{item.published_at} ...}
-        return
-      end
-
-      push! item
-
-      if (@limit && @num_pushed >= @limit)
-        @out.puts %{Reached limit of #{@limit} items}
-        throw :limit_reached
-      end
-    end
-
-    def push! item
-      post_data = post_data item
-      @post_date_str = item.published_at.to_s
-      @out.puts %{attempting to post article from #{@post_date_str} ...}
-      if (@dry)
-        @out.puts "(dry run)"
-        sleep 0.5
-      else
-        resp = Exception.wrap { RestClient.post(@url, post_data) }
-        @out.puts %{(tublr id: "#{resp}")}
-      end
-      @num_pushed += 1
-      @out.puts "..done."
-    end
-
-    def post_data item
-      o = OpenStruct.new
-      o.title       =   item.title
-      o.body        =   item.content
-      o.email       =   @to_cred
-      o.password    =   @password
-      o.type        =   'regular'
-      o.generator   =   self.generator_name
-      o.date        =   item.published_at
-      o.private     =   0
-      o.tags        =   item.tags
-      o.format      =   'html'  # html | markdown
-      o
     end
   end
 end

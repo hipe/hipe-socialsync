@@ -130,6 +130,8 @@ module Hipe::SocialSync::Plugins
       table = self.class.table
       table.show_only :id,:theirs,:user,:account,:published_at,:title,:excerpt,:source,:targets
 
+      table.field[:target_accounts].show if acct # this is just cosmetic :/
+
       items = get_items(table, user, svc, acct)
       items[0].last_event
 

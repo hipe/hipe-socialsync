@@ -40,10 +40,11 @@ module Hipe::SocialSync::Plugins
             when "": next
             when "quit": throw :quit, "goodbye, thank you"
             when String:
+              command = transport.interface.command[cmd.to_sym]
               begin
-                resp = transport.send(cmd)  # we trust that the above only allowed thru publicly accessible cmd names
+                resp = transport.send(command.method)  # we trust that the above only allowed thru publicly accessible cmd names
                 puts resp.to_s
-              rescue RuntimeError => e
+              rescue Hipe::SocialSync::TransportRuntimeError => e
                 puts e.message
                 next
               end
@@ -55,13 +56,13 @@ module Hipe::SocialSync::Plugins
               next
             elsif( tree = parse_assignment(entered) )
               unless(accessor = transport.class.attrs[tree.name])
-                puts %|unrecognized property "#{tree.name}"|
+                puts %|not a writable attribute: #{tree.name.inspect}|
                 next
               end
               begin
                 transport.send %{#{accessor.name}=}, tree.value
               rescue ArgumentError => e
-                puts "Argument error: " << e.message << " for #{accessor.name}"
+                puts e.message << " for #{accessor.name}"
                 next
               end
               next
