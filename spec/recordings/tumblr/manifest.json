@@ -13,11 +13,6 @@
         "method": "get",
         "url": "http://hipe.tumblr.com/api/read/json?debug=1&num=1&start=1&type=all",
         "response_filename": "b62b7075ff4c5e571241166a40192fbe"
-      },
-      {
-        "request_file": "e1ee1e9154f8d740fb3365a32aa7dd32",
-        "method": "post",
-        "url": "http://www.tumblr.com/api/write"
       }
     ]
   }

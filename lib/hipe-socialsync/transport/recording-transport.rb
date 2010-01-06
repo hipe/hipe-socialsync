@@ -137,6 +137,14 @@ module Hipe::SocialSync
       File.open(my_manifest_path,'w'){|fh| fh.write json}
     end
 
+    def request_path_for_md5 md5
+      File.join(my_recordings_dir, RequestFilesDir, md5)
+    end
+
+    def response_path_for_md5 md5
+      File.join(my_recordings_dir, ResponseFilesDir, md5)
+    end
+
     # @param [mixed] url_or_post_operation, url if :get, [PostOperation] if :post
     # @return [GoldenHammer] response object
     def record_response method, url_or_post_operation, response
@@ -152,7 +160,8 @@ module Hipe::SocialSync
       mani = manifest
       idx = index_of_entry_for_request_url url
       if ! @clobber_recordings and idx
-        raise "Response already exists for #{url.inspect}.  Do you want to turn @clobber_recordings on?"
+        raise TransportRuntimeError.new(
+          "Response already exists for #{url.inspect}.  Do you want to turn @clobber_recordings on?")
       end
       if idx
         verb = 'Rewrote'
@@ -177,7 +186,8 @@ module Hipe::SocialSync
       norm = normalize_post_operation post_operation
       idx = index_of_entry_for_request_md5 norm[:md5]
       if ! @clobber_recordings and idx
-        raise "Response already exists for this post operation.  Do you want to turn @clobber_recordings on?"
+        raise TransportRuntimeError.new(
+          "Response already exists for this post operation.  Do you want to turn @clobber_recordings on?")
       end
       if idx
         verb = 'Rewrote'
@@ -227,6 +237,17 @@ module Hipe::SocialSync
         result << [key.to_s, hash[key].kind_of?(Hash) ? hash_to_array_recursive(hash[key]) : hash[key] ]
       end
       result
+    end
+
+    # warning -- this will break under cases where you have array data that is two elements long!
+    def array_to_hash_recursive array, max_levels
+      return array if max_levels == 0
+      hash = {}
+      array.each do |entry|
+        return array if (!entry.kind_of?(Array) && entry.size == 2)
+        hash[entry[0]] = (entry[1].kind_of?(Array) ? array_to_hash_recursive(entry[1], max_levels-1) : entry[1])
+      end
+      hash
     end
 
     def has_recorded_response? url

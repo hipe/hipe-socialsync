@@ -19,7 +19,7 @@ module Hipe::SocialSync
       interactive :response, :description => "view the last response"
       interactive :json_prettify_response, :method => :response_as_pretty_json
       interactive :save_this
-      interactive :load_last, :description => "load last recorded response"
+      interactive :load_last_post, :description => "load last recorded response"
       interactive :view, :description => "which mode to view the table in"
     end
 
@@ -51,6 +51,7 @@ module Hipe::SocialSync
       :search           ,
       :ask_for_json     ,
       :prettify_json_when_recording,
+      :read_get_recordings, :write_recordings, :clobber_recordings,
       :response
     ]
 
@@ -72,6 +73,7 @@ module Hipe::SocialSync
       :item_date       ,
       :item_tags       ,
       :post_type       ,
+      :write_recordings, :clobber_recordings,
       :response
     ]
 
@@ -103,11 +105,13 @@ module Hipe::SocialSync
       @prettify_json_when_recording = true
       @read_offset = 0
       @read_url =      'http://%s.tumblr.com/api/read'
+      @response = 'blah'
       @search = nil
       @table = nil
       @tag = nil
       @username = nil
-      self.view = :all
+#      self.view = :all
+      self.view = :write
       @write_url =     'http://www.tumblr.com/api/write'
     end
 
@@ -136,14 +140,16 @@ module Hipe::SocialSync
           field(:search){|x| x.search.inspect << " (search for this string)"}
           field(:ask_for_json)      { |x|     x.ask_for_json.inspect }
           field(:prettify_json_when_recording){|x| x.prettify_json_when_recording.inspect }
-          field(:read_get_recordings){|x|     x.read_get_recordings.inspect }
-          field(:write_recordings)  { |x|     x.write_recordings.inspect}
-          field(:clobber_recordings){ |x|     x.clobber_recordings.inspect}
           field(:item_title      )  { |x|     x.item_title.inspect }
           field(:item_body       )  { |x|     x.item_body ? transport.truncate(x.item_body,20) : x.item_body.inspect }
           field(:item_date       )  { |x|     x.item_date.inspect  }
           field(:item_tags       )  { |x|     x.item_tags.inspect  }
           field(:response        )  { |x|     x.response ? transport.truncate(x.response,20) : x.response.inspect }
+
+          field(:read_get_recordings){|x|     x.read_get_recordings.inspect }
+          field(:write_recordings)  { |x|     x.write_recordings.inspect}
+          field(:clobber_recordings){ |x|     x.clobber_recordings.inspect}
+
           self.axis = :horizontal
           self.list = [transport]
           self.labelize = lambda{|x| x.to_s} # don't humanize the labels
@@ -267,9 +273,44 @@ module Hipe::SocialSync
     def prepare_post_operation
       o = PostOperation.new
       o.url = @write_url
-      o.parameters = prepare_write_post_parameters,
+      o.parameters = prepare_write_post_parameters
       o.headers = {}
       o
+    end
+
+    def load_last_post
+      mani = manifest
+      i = mani[1][EntriesKey].size
+      while ((i-=1) >= 0) do
+        next unless mani[1][EntriesKey][i]['method'] == 'post'
+        load_entry mani[1][EntriesKey][i]
+        return Response.new("loaded last post")
+      end
+      ret = Response.new
+      ret.errors << "There are no recorded POST operations"
+      ret
+    end
+
+    def load_entry entry
+      raise TransportRuntimeError.new("load entry not yet implemented for #{entry['method'].inspect}") unless
+        entry['method'] == 'post'
+      request_path  =  request_path_for_md5(entry[RequestFilenameKey])
+      response_path =  response_path_for_md5(entry[RequestFilenameKey])
+      response_str = File.read response_path
+      request_json = File.read request_path
+      request_structure_as_array = JSON::parse(request_json)
+      request_struct = array_to_hash_recursive( request_structure_as_array, 2 )
+      params = request_struct['parameters']
+
+      # ignore 'url' and 'headers', just set each parameter
+      @item_title       = params['title']
+      @item_body        = params['body']
+      @name_credential  = params['email']
+      @password         = params['password']
+      @type             = params['type'] == nil ? :all : params['type'].to_sym
+      @generator_name   = params['generator']
+      @item_date        = params['date']
+      @item_tags        = params['tags']
     end
 
     def prepare_write_post_parameters
