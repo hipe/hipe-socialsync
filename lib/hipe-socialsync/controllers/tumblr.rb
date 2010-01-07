@@ -1,5 +1,5 @@
 # require 'highline/import'    # for password prompting
-
+require 'hipe-socialsync/transport/tumblr-transport'
 module Hipe::SocialSync::Plugins
   class Tumblr
     include Hipe::Cli
@@ -14,6 +14,7 @@ module Hipe::SocialSync::Plugins
     cli.default_command = :help
 
     cli.does('push',"push the item(s) to tumblr") do
+      option('-h',&help)
       option('--sleep-every SEC',  "sleep for n seconds after you push these many items", :default=>'2') do |it|
         it.must_match_range(0..60).must_be_integer
       end
@@ -62,26 +63,32 @@ module Hipe::SocialSync::Plugins
         out.errors << %{#{x} #{y}}
       end
       acct = items.first.target_accounts.detect{|x| x.account.service = svc }
-      if (acct && acct.user != user)
+      if (acct && acct.account.user != user)
         out2 = cli.out.new
         out2.errors << "account(s) of item(s) doesn't/don't belong to you"
         return out2
       end
       return out unless out.valid?
-      actually_push_these items, acct, tumblr_password, user, opts
+      actually_push_these items, acct.account, tumblr_password, user, opts
     end
     def actually_push_these items, acct, tumblr_password, user, opts
+      result = cli.out.new
       transport = cli.parent.application.transports[:tumblr]
       transport.name_credential = acct.name_credential
       transport.password = tumblr_password
       transport.username = acct.name_credential
       items.each do |item|
-        transport.item_to_push = item
-
-        HERE
-
-
+        transport.response = nil
+        transport.item_id_internal = item.id
+        transport.item_title = item.title
+        transport.item_body = item.content
+        transport.item_date = item.published_at.to_s
+        transport.item_tags = item.keywords
+        sub_result = transport.push
+        result.merge! sub_result
+        return result unless result.valid?
       end
+      result
     end
   end
 end

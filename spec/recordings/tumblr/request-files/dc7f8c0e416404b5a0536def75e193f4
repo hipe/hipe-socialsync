@@ -1,0 +1,53 @@
+[
+  [
+    "headers",
+    [
+
+    ]
+  ],
+  [
+    "parameters",
+    [
+      [
+        "body",
+        "a dog content"
+      ],
+      [
+        "date",
+        "2008-01-03T00:00:00+00:00"
+      ],
+      [
+        "email",
+        "chip.malice@gmail.com"
+      ],
+      [
+        "format",
+        "html"
+      ],
+      [
+        "generator",
+        "ADE - slow burn"
+      ],
+      [
+        "password",
+        "secret"
+      ],
+      [
+        "private",
+        0
+      ],
+      [
+        "tags",
+        "kw1,kw2,kw3"
+      ],
+      [
+        "title",
+        "my dog"
+      ]
+    ]
+  ],
+  [
+    "url",
+    "http://www.tumblr.com/api/write"
+  ]
+]

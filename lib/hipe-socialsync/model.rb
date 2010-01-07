@@ -325,7 +325,7 @@ module Hipe::SocialSync::Model
     has n, :items, :model => 'Item', :child_key => [:account_id]
     has n, :source_items, :model => 'ItemAccountTargeting'
 
-    property :name_credential, String, :length => (1..20)
+    property :name_credential, String, :length => (1..80)
 
     def one_word
       %{#{service.name}/#{name_credential}}

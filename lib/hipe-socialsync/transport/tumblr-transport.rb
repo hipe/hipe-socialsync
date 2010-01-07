@@ -64,10 +64,12 @@ module Hipe::SocialSync
     string_accessor  :item_body
     string_accessor  :item_date
     string_accessor  :item_tags
+    integer_accessor :item_id_internal
     @@write_parameters = [
       :generator_name  ,
       :name_credential ,
       :password        ,
+      :item_id_internal,
       :item_title      ,
       :item_body       ,
       :item_date       ,
@@ -84,7 +86,7 @@ module Hipe::SocialSync
 
     # properties related to using this transport
     enum_accessor :view, [:read, :write, :all], :use => :to_sym
-    string_accessor :response
+    string_accessor :response, :nil => true
 
 
 
@@ -140,6 +142,7 @@ module Hipe::SocialSync
           field(:search){|x| x.search.inspect << " (search for this string)"}
           field(:ask_for_json)      { |x|     x.ask_for_json.inspect }
           field(:prettify_json_when_recording){|x| x.prettify_json_when_recording.inspect }
+          field(:item_id_internal)  { |x|     x.item_id_internal.inspect }
           field(:item_title      )  { |x|     x.item_title.inspect }
           field(:item_body       )  { |x|     x.item_body ? transport.truncate(x.item_body,20) : x.item_body.inspect }
           field(:item_date       )  { |x|     x.item_date.inspect  }
@@ -325,25 +328,29 @@ module Hipe::SocialSync
       o.private     =   0
       o.tags        =   @item_tags
       o.format      =   'html'  # html | markdown
+      o._table.delete_if{|k,v| v.nil?}
       o._table
     end
 
     def push
+      @response = nil
       result = Response.new
-      unless @object_to_push
-        result.errors << "must have object to push"
-        return result
-      end
       @post_operation = prepare_post_operation
       p = @post_operation
       begin
         @response = RestClient.post p.url, p.parameters, p.headers
       rescue SocketError => e
-        result.errors << [%{Got a socket error: "#{e.message}" -- Is your internet on?  }<<
-          %{Do you *have* the Internet?},{:exception=>e}]
+        result.errors << Response.new(
+          :error => %{Got a socket error: "#{e.message}" -- Is your internet on?  }<<
+            %{Do you *have* the Internet?},
+          :data => {:exception => e}
+        )
       rescue RestClient::RequestFailed => e
-        result.errors << [%{Failed to push item ##{item.id} to tumblr.  Exception: #{e}} <<
-          %{#{e.response.body.inspect}},{:exception=>e}]
+        result.errors << Response.new(
+          :error => %|Failed to push item ##{item_id_internal.inspect} to tumblr.  Exception: {{{#{e}}}} | <<
+            %|Response body: {{{#{e.response.body.inspect}}}}|,
+          :data => {:exception => e}
+        )
       end
       if result.valid?
         result.puts "@response is set."
@@ -352,7 +359,7 @@ module Hipe::SocialSync
           result.merge! sub_result
         end
       end
-      response
+      result
     end
   end
 end

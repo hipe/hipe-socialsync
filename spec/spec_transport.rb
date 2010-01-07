@@ -13,16 +13,16 @@ module Hipe::SocialSync
   end
 
   describe Transports do
-    it "not all transports should be loaded into the collection at first (trans1)" do
-      the_transporters = Transports.new
-      the_transporters.keys.should.equal [:recording_test]
-    end
-
-    it "not all transports should be loaded into the collection at first (trans1)" do
-      the_transporters = Transports.new
-      trans = the_transporters[:recording_test]
-      trans.should.be.kind_of RecordingTransportTester
-    end
+    # it "not all transports should be loaded into the collection at first (trans1)" do
+    #   the_transporters = Transports.new
+    #   the_transporters.keys.should.equal [:recording_test]
+    # end
+    #
+    # it "not all transports should be loaded into the collection at first (trans1)" do
+    #   the_transporters = Transports.new
+    #   trans = the_transporters[:recording_test]
+    #   trans.should.be.kind_of RecordingTransportTester
+    # end
 
     it "should initialize a folder" do
       trans = Transports.new[:recording_test]

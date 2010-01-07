@@ -1,0 +1,56 @@
+[
+  [
+    "headers",
+    [
+      [
+        "content_type",
+        "application/x-www-form-urlencoded"
+      ]
+    ]
+  ],
+  [
+    "parameters",
+    [
+      [
+        "body",
+        "a cat content"
+      ],
+      [
+        "date",
+        "2008-01-02T00:00:00+00:00"
+      ],
+      [
+        "email",
+        "chip.malice@gmail.com"
+      ],
+      [
+        "format",
+        "html"
+      ],
+      [
+        "generator",
+        "ADE - slow burn"
+      ],
+      [
+        "password",
+        "secret"
+      ],
+      [
+        "private",
+        0
+      ],
+      [
+        "tags",
+        "kw1,kw2,kw3"
+      ],
+      [
+        "title",
+        "my cat"
+      ]
+    ]
+  ],
+  [
+    "url",
+    "http://www.tumblr.com/api/write"
+  ]
+]

@@ -128,7 +128,7 @@ module Hipe::SocialSync::Plugins
       end
 
       table = self.class.table
-      table.show_only :id,:theirs,:user,:account,:published_at,:title,:excerpt,:source,:targets
+      table.show_only :id,:theirs,:user,:account,:published_at,:title,:excerpt,:source,:targets,:target_accounts
 
       table.field[:target_accounts].show if acct # this is just cosmetic :/
 

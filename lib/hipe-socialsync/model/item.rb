@@ -51,7 +51,7 @@ module Hipe::SocialSync::Model
         :author         => author_str,
         :content        => content_str,
         :content_md5    => md5,
-        :keywords       => keywords,
+        :keywords       => keywords_str,
         :published_at   => published_at,
         :source         => source_obj,
         :status         => status,

@@ -31,57 +31,60 @@
 #! end code
 
 
-~/d > sosy users:add user2@user admin@admin
-Created user "user2@user". Now there are 2 users.
+~/d > sosy users:add hipe@sosy admin@admin
+Created user "hipe@sosy". Now there are 2 users.
 
-~/d > sosy accounts:add wordpress admin@admin wpuser1
+~/d > sosy accounts:add wordpress hipe@sosy wpuser1
 Added wordpress account of "wpuser1".
 
-~/d > sosy accounts:add wordpress admin@admin wpuser2
+~/d > sosy accounts:add wordpress hipe@sosy wpuser2
 Added wordpress account of "wpuser2".
 
-~/d > sosy accounts:add tumblr admin@admin tuser1
-Added tumblr account of "tuser1".
+~/d > sosy accounts:add tumblr hipe@sosy chip.malice@gmail.com
+Added tumblr account of "chip.malice@gmail.com".
 
-~/d > sosy accounts:add wordpress user2@user wpuser3
+~/d > sosy accounts:add wordpress hipe@sosy wpuser3
 Added wordpress account of "wpuser3".
 
 # add item wordpress wpuser1 101 cat
-~/d > sosy items:add wordpress wpuser1 101 "ignore author" "a cat content" kw1,kw2,kw3 2008-01-02 published "my cat" admin@admin
+~/d > sosy items:add wordpress wpuser1 101 "ignore author" "a cat content" kw1,kw2,kw3 2008-01-02 published "my cat" hipe@sosy
 Added blog entry (ours: #1, theirs: #101).
 
 # add item wordpress wpuser1 102 dog
-~/d > sosy items:add wordpress wpuser1 102 "ignore author" "a dog content" kw1,kw2,kw3 2008-01-03 published "my dog" admin@admin
+~/d > sosy items:add wordpress wpuser1 102 "ignore author" "a dog content" kw1,kw2,kw3 2008-01-03 published "my dog" hipe@sosy
 Added blog entry (ours: #2, theirs: #102).
 
 # add item wordpress wpuser2 103 giraffe
-~/d > sosy items:add wordpress wpuser2 103 "ignore author" "a giraffe content" kw1,kw2,kw3 2008-01-04 published "my giraffe" admin@admin
+~/d > sosy items:add wordpress wpuser2 103 "ignore author" "a giraffe content" kw1,kw2,kw3 2008-01-04 published "my giraffe" hipe@sosy
 Added blog entry (ours: #3, theirs: #103).
 
-# add item wordpress wpuser3 (user2@user) 201 hippo
-~/d > sosy items:add wordpress wpuser3 201 "ignore author" "hippo content" kw7,kw8,kw9 2008-01-05 published "my hippo" user2@user
+# add item wordpress wpuser3 (hipe@sosy) 201 hippo
+~/d > sosy items:add wordpress wpuser3 201 "ignore author" "hippo content" kw7,kw8,kw9 2008-01-05 published "my hippo" hipe@sosy
 Added blog entry (ours: #4, theirs: #201).
 
-# add item tumblr tuser1 (admin@admin) 901 camel
-~/d > sosy items:add --source 4 tumblr tuser1 901 "ignore author" "a camel content" kw1,kw2,kw3 2008-01-06 published "my camel" admin@admin
+# add item tumblr chip (hipe@sosy) 901 camel
+~/d > sosy items:add --source 4 tumblr chip.malice@gmail.com 901 "ignore author" "a camel content" kw1,kw2,kw3 2008-01-06 published "my camel" hipe@sosy
 Added blog entry (ours: #5, theirs: #901).
 
 # target account
-~/d > sosy item:add_target_account 1  tumblr tuser1 admin@admin
-Added target tumblr/tuser1 to item "my cat".
+~/d > sosy item:add_target_account 1  tumblr chip.malice@gmail.com hipe@sosy
+Added target tumblr/chip.malice@gmail.com to item "my cat".
 
 # target same account again
-~/d > sosy item:add_target_account 1  tumblr tuser1 admin@admin
-
-
-Account tumblr/tuser1 has already been targeted by item "my cat".
+~/d > sosy item:add_target_account 1  tumblr chip.malice@gmail.com hipe@sosy
+Account tumblr/chip.malice@gmail.com has already been targeted by item "my cat".
 
 # remove all targets
-~/d > sosy item:remove_target_accounts 1 admin@admin
+~/d > sosy item:remove_target_accounts 1 hipe@sosy
 Removed one target from item "my cat".
 
 # remove all targets again
-~/d > sosy item:remove_target_accounts 1 admin@admin
+~/d > sosy item:remove_target_accounts 1 hipe@sosy
 Item "my cat" is already cleared of targets.
+
+# add target again
+~/d > sosy item:add_target_account 1,2  tumblr chip.malice@gmail.com hipe@sosy
+Added target tumblr/chip.malice@gmail.com to item "my cat".
+Added target tumblr/chip.malice@gmail.com to item "my dog".
 
 
