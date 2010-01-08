@@ -139,8 +139,21 @@ module Hipe
         db_connect
       end
 
-      def run(argv)
-        argv.unshift(*@prepend)
+      def parsed_universals
+        @univ
+      end
+
+      def run(argv, user=nil)
+        argv['current_user_email'] = user if user && argv.kind_of?(Hash)
+        if (@prepend.size > 0)
+          if argv.kind_of? Array
+            argv.unshift(*@prepend) if @prepend.size > 0
+          elsif argv.kind_of? Hash
+            universals = self.cli.universal_option_values(@prepend)
+            @univ = universals
+            argv.merge! universals._table # universals always gain precedence
+          end
+        end
         return catch(:invalid) do
           DataMapper.repository do
             cli.run(argv)
@@ -153,7 +166,11 @@ module Hipe
       end
       def ping(opts)
         out = cli.out.new
-        out << 'Hello.'
+        unless opts.env
+          out.errors << "Can't determine environment.  Was --env passed when the application was started?"
+        end
+        return out unless out.valid?
+        out << "Hello.  I am a #{self.class}."
         out << %{  My environment is "#{opts.env}".}
         if (opts.db)
           db_connect

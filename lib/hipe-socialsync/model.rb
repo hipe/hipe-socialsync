@@ -349,6 +349,11 @@ module Hipe::SocialSync::Model
       assert_kind_of :user, user_obj, User
       svc = Service.first_or_throw(:name => service_name)
       acct = self.first_or_throw(:service=>svc, :name_credential=>name_credential, :user=>user_obj)
+      if ((cnt = acct.items.size) > 0)
+        err = ValidationErrors[%{Won't delete an account that has items associated with it.  This account has }<<
+            %{#{cnt} items associated with it.}]
+        throw :invalid, err
+      end
       acct.destroy!
       Event.kreate :service_account_deleted, :account=>acct, :by=>user_obj
       %{Removed record of #{svc.name} account for "#{name_credential}".}

@@ -40,10 +40,17 @@ module Hipe::SocialSync::Plugins
       if (opts.dry)
         item = Object.new # openstruct won't work
         def item.id; 'dry-run' end
+        out << %{Added blog entry (ours: ##{item.id}, theirs: ##{foreign_id}).}
       else
-        item = ItemModel.kreate(acct, foreign_id, author, content, keywords_str, published_at, status, title, user, opts)
+        validation_errors = catch(:invalid) do
+          item = ItemModel.kreate(acct, foreign_id, author, content, keywords_str, published_at, status, title, user, opts)
+          out << %{Added blog entry (ours: ##{item.id}, theirs: ##{foreign_id}).}
+          out.data.item = item
+        end
+        if validation_errors
+          out.errors << validation_errors.to_s
+        end
       end
-      out << %{Added blog entry (ours: ##{item.id}, theirs: ##{foreign_id}).}
       out
     end
 
@@ -101,6 +108,7 @@ module Hipe::SocialSync::Plugins
     # @todo below we hard-code svc names just for fun -- to play w/ optparse completion
     cli.does(:list, "show some items, maybe do something to them") do
       option('-h',&help)
+      option('-a','--account ID', 'items that are from this account id [and...]')
       option('-u','--user EMAIL', 'items that belong to this sosy user [and...]')
       option('-s','--service NAME',['wordpress','tumblr'],'items that are from this service [and...]')
       option('-n','--name-credential NAME','items that are from the account with this username [and...]')
@@ -112,7 +120,9 @@ module Hipe::SocialSync::Plugins
     end
 
     def list(command_name, current_user_email, opts)
-      unless [0,2].include? [current_user_email, command_name].compact.size
+      command_name = nil if command_name == "" # @todo rack nils
+      if (command_name && ! current_user_email)
+      #unless [0,2].include? [current_user_email, command_name].compact.size
         argument_error(%{If you indicate a command (#{command_name.inspect})}<<
           %{ you must indicate a user (#{current_user_email.inspect})})
       end
@@ -122,7 +132,16 @@ module Hipe::SocialSync::Plugins
       if (opts.name_credential && (missing = [:service,:user] - opts._table.keys).size > 0)
         argument_error(%{To search with name credential you must indicate a #{missing.map{|x| %{#{x}}}*' and a '}.})
       end
-      acct = opts.name_credential ? Account.first_or_throw(:service => svc, :name_credential => opts.name_credential) : nil
+
+      if opts.name_credential
+        argument_error("You can't indicate both a name credential and an account id") if opts.account
+        acct = Account.first_or_throw(:service => svc, :name_credential => opts.name_credential)
+      elsif opts.account
+        acct = Account.first_or_throw(:id => opts.account)
+      else
+        acct = nil
+      end
+
       if (acct && user && acct.user != user)
         argument_error(%{You can't view items of other users})
       end
@@ -136,6 +155,9 @@ module Hipe::SocialSync::Plugins
       items[0].last_event
 
       out = cli.out.new :suggested_template => :tables
+      out.data.user = user
+      out.data.service = svc
+      out.data.account = acct
       if command_name
         sub_out = do_aggregate(items, command_name, current_user_email, opts)
         acct.reload if acct
@@ -167,7 +189,7 @@ module Hipe::SocialSync::Plugins
     end
     def do_aggregate list, command, current_user_identifier, opts
       current_user_obj = current_user(current_user_identifier)
-      argument_error("Invalid command: #{command.inspect}") unless ['delete'].include?(command)
+      argument_error("Invalid aggregate command: #{command.inspect}") unless ['delete'].include?(command)
       out = cli.out.new
       if (list.count < 0)
         out.messages << "There were no items to #{command}."

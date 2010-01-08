@@ -16,7 +16,7 @@
 ~/d > sosy ping
 #! start code
   env = $hipe_env || 'test'
-  md = x.to_s.match  %r{^hello\.  my environment is "(.+)"\.$}i
+  md = x.to_s.match  %r{^hello\..*  my environment is "(.+)"\.$}i
   md.should.be.kind_of MatchData
   md[1].should.equal env
   x = @app.run(["db:auto-migrate", "-F", env])
@@ -33,6 +33,9 @@
 
 ~/d > sosy users:add hipe@sosy admin@admin
 Created user "hipe@sosy". Now there are 2 users.
+
+~/d > sosy users:add anonymous@sosy hipe@sosy
+Created user "anonymous@sosy". Now there are 3 users.
 
 ~/d > sosy accounts:add wordpress hipe@sosy wpuser1
 Added wordpress account of "wpuser1".

@@ -18,7 +18,8 @@ module Hipe::SocialSync::Plugins
     cli.does(:pull,'parse wordpress xml into database.') {
       option('-h',&help)
       option('-d', '--[no-]dry', "Dry run.  Does everything the same but write to the database.")
-      option('limit', "only this many will be pulled in from the xml file", :default=>'5'){|it|
+      option('--auto-create-account')
+      option('limit', "only this many will be pulled in from the xml file", :default=>'50'){|it|
         it.must_match(0..50)
         it.must_be_integer
       }
@@ -34,9 +35,22 @@ module Hipe::SocialSync::Plugins
     def pull(xml_in, name_credential, current_user_email, opts)
       user = current_user(current_user_email)
       svc = Service.first_or_throw(:name=>'wordpress')
-      acct = Account.first_or_throw(:user=>user,:service=>svc,:name_credential=>name_credential)
+      sub_response = cli.out.new
+      if (opts.auto_create_account)
+        acct = Account.first(:user=>user, :service=>svc, :name_credential=>name_credential)
+        unless (acct)
+          command = cli.parent.commands["accounts:add"]
+          sub_sub_response = command.run(['wordpress', current_user_email, name_credential], opts)
+          sub_response.merge! sub_sub_response
+        end
+        acct = Account.first_or_throw(:user=>user,:service=>svc,:name_credential=>name_credential)
+      else
+        acct = Account.first_or_throw(:user=>user,:service=>svc,:name_credential=>name_credential)
+      end
+      return sub_response unless sub_response.valid?
       @limit = opts.limit
       @out = cli.out.new
+      @out.merge! sub_response
       @summary = {
         :skipped => {
           :because_of_status => {},
@@ -48,7 +62,7 @@ module Hipe::SocialSync::Plugins
       return @out unless @out.valid?
       @out << summarize(@summary)
       item_controller  = cli.parent.plugins[:items]
-      i = -1
+      i = -
       dry_switch = opts.dry ? '--dry' : '--no-dry'
       objects.each_with_index do |o,i|
         sub_out = item_controller.cli.run(['add', dry_switch,
@@ -57,9 +71,12 @@ module Hipe::SocialSync::Plugins
           o.post_date, o.status, o.title,
           current_user_email
         ])
-        return sub_out unless sub_out.valid?
-        @out.puts sub_out.to_s
+        @out.merge! sub_out  # continue with errors on individual items
+        # return sub_out unless sub_out.valid?
+        # @out.puts sub_out.to_s
       end
+      debugger
+
       @out.puts %{\nDone importing #{i+1} objects.}
       @out
     end
@@ -124,6 +141,7 @@ module Hipe::SocialSync::Plugins
     end
 
     def summarize summary
+      Hipe::FunSummarize.clear
       s = ''
       s << ( "\n\n"+((('='*80)+"\n")*1)+"\nSummary: \n" )
       s << "of the items in the wordpress xml file "+ Hipe::FunSummarize.summarize_totals(summary);

@@ -18,7 +18,15 @@ module Hipe::SocialSync::Model
     property :published_at, DateTime, :required => true
     # property :sync_group_id, Integer, :required => false
     property :status, String
-    property :title, String, :length => (1..80)
+    property :title, String
+    # property :title, String, :length => (1..80)
+    formatter =
+    validates_length :title, :min=>0, :max=>80,
+      :message => lambda{|res,prop|
+        title = res.send(prop.name)
+        truncated = res.truncate(res.send(prop.name),15)
+        %{length of title must be between 0 and 80.  Invalid title: "%s"}.t(truncated)
+      }
     validates_is_unique :content_md5, :scope => :account_id,
       :message => lambda{|res,prop| %{Md5 "%s" is already taken.}.t(res.send(prop.name))}
     validates_is_unique :content, :scope => :account_id,

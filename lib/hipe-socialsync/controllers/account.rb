@@ -42,12 +42,18 @@ module Hipe::SocialSync::Plugins
 
     cli.does(:delete, "remove the account"){
       option('-h', &help)
-      required(:service_name, 'name of service for the account you want to delete')
-      required(:name_credential, 'name on the account')
-      required(:current_user_email, 'who are you.')
+      option('--object-id ID')
+      optional(:service_name, 'name of service for the account you want to delete')
+      optional(:name_credential, 'name on the account')
+      optional(:current_user_email, 'who are you.')
     }
     def delete(service_name, name_credential, current_user_email, opts=nil)
       user_obj = current_user(current_user_email)
+      if opts._table[:object_id]
+        acct = Account.first_or_throw(:id => opts._table[:object_id])
+        name_credential = acct.name_credential
+        service_name = acct.service.name
+      end
       out = cli.out.new
       out << Account.remove(service_name, name_credential, user_obj)
       out
