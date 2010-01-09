@@ -70,23 +70,23 @@ Added blog entry (ours: #4, theirs: #201).
 Added blog entry (ours: #5, theirs: #901).
 
 # target account
-~/d > sosy item:add_target_account 1  tumblr chip.malice@gmail.com hipe@sosy
+~/d > sosy items:add_target_account 1  tumblr/chip.malice@gmail.com hipe@sosy
 Added target tumblr/chip.malice@gmail.com to item "my cat".
 
 # target same account again
-~/d > sosy item:add_target_account 1  tumblr chip.malice@gmail.com hipe@sosy
+~/d > sosy items:add_target_account 1  tumblr/chip.malice@gmail.com hipe@sosy
 Account tumblr/chip.malice@gmail.com has already been targeted by item "my cat".
 
 # remove all targets
-~/d > sosy item:remove_target_accounts 1 hipe@sosy
+~/d > sosy items:remove_target_accounts 1 hipe@sosy
 Removed one target from item "my cat".
 
 # remove all targets again
-~/d > sosy item:remove_target_accounts 1 hipe@sosy
+~/d > sosy items:remove_target_accounts 1 hipe@sosy
 Item "my cat" is already cleared of targets.
 
 # add target again
-~/d > sosy item:add_target_account 1,2  tumblr chip.malice@gmail.com hipe@sosy
+~/d > sosy items:add_target_account 1,2  tumblr/chip.malice@gmail.com hipe@sosy
 Added target tumblr/chip.malice@gmail.com to item "my cat".
 Added target tumblr/chip.malice@gmail.com to item "my dog".
 

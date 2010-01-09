@@ -62,7 +62,7 @@ module Hipe::SocialSync::Plugins
       return @out unless @out.valid?
       @out << summarize(@summary)
       item_controller  = cli.parent.plugins[:items]
-      i = -
+      i = -1
       dry_switch = opts.dry ? '--dry' : '--no-dry'
       objects.each_with_index do |o,i|
         sub_out = item_controller.cli.run(['add', dry_switch,
@@ -75,8 +75,6 @@ module Hipe::SocialSync::Plugins
         # return sub_out unless sub_out.valid?
         # @out.puts sub_out.to_s
       end
-      debugger
-
       @out.puts %{\nDone importing #{i+1} objects.}
       @out
     end

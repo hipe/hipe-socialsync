@@ -23,7 +23,7 @@
 ~/d > sosy ping
 #! start code
   env = $hipe_env || 'test'
-  md = x.to_s.match  %r{^hello\.  my environment is "(.+)"\.$}i
+  md = x.to_s.match  %r{^hello.*  my environment is "(.+)"\.$}i
   md.should.be.kind_of MatchData
   md[1].should.equal env
   x = @app.run(["db:auto-migrate", "-F", env])

@@ -1,9 +1,9 @@
-# bacon -n '.*' spec/spec_item-syncing-genned.rb
+# bacon spec/spec_item-syncing-genned.rb
 require 'hipe-socialsync'
 
 
 # You may not want to edit this file.  It was generated from data in "item-syncing.screenshots"
-# by hipe-cli gentest on 2010-01-07 14:34.
+# by hipe-cli gentest on 2010-01-08 22:53.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -100,31 +100,31 @@ describe "Item syncing tests (generated tests)" do
   end
 
   it "# target account (item-sync-12)" do
-    x = @app.run(["item:add_target_account", "1", "tumblr", "chip.malice@gmail.com", "hipe@sosy"])
+    x = @app.run(["items:add_target_account", "1", "tumblr/chip.malice@gmail.com", "hipe@sosy"])
     y = "Added target tumblr/chip.malice@gmail.com to item \"my cat\"."
     x.to_s.chomp.should.equal y
   end
 
   it "# target same account again (item-sync-13)" do
-    x = @app.run(["item:add_target_account", "1", "tumblr", "chip.malice@gmail.com", "hipe@sosy"])
+    x = @app.run(["items:add_target_account", "1", "tumblr/chip.malice@gmail.com", "hipe@sosy"])
     y = "Account tumblr/chip.malice@gmail.com has already been targeted by item \"my cat\"."
     x.to_s.chomp.should.equal y
   end
 
   it "# remove all targets (item-sync-14)" do
-    x = @app.run(["item:remove_target_accounts", "1", "hipe@sosy"])
+    x = @app.run(["items:remove_target_accounts", "1", "hipe@sosy"])
     y = "Removed one target from item \"my cat\"."
     x.to_s.chomp.should.equal y
   end
 
   it "# remove all targets again (item-sync-15)" do
-    x = @app.run(["item:remove_target_accounts", "1", "hipe@sosy"])
+    x = @app.run(["items:remove_target_accounts", "1", "hipe@sosy"])
     y = "Item \"my cat\" is already cleared of targets."
     x.to_s.chomp.should.equal y
   end
 
   it "# add target again (item-sync-16)" do
-    x = @app.run(["item:add_target_account", "1,2", "tumblr", "chip.malice@gmail.com", "hipe@sosy"])
+    x = @app.run(["items:add_target_account", "1,2", "tumblr/chip.malice@gmail.com", "hipe@sosy"])
     y =<<-__HERE__.gsub(/^    /,'').chomp
     Added target tumblr/chip.malice@gmail.com to item "my cat".
     Added target tumblr/chip.malice@gmail.com to item "my dog".

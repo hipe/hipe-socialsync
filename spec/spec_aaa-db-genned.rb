@@ -1,11 +1,11 @@
-# bacon -n '.*' spec/spec_aaa-db-genned.rb
+# bacon spec/spec_aaa-db-genned.rb
 require 'hipe-socialsync'
 require 'bacon'
 require 'hipe-core/test/bacon-extensions'
 
 
 # You may not want to edit this file.  It was generated from data in "aaa-db.screenshots"
-# by hipe-cli gentest on 2009-12-31 15:06.
+# by hipe-cli gentest on 2010-01-08 22:53.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken

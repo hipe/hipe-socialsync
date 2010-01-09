@@ -3,6 +3,7 @@ module Hipe::SocialSync::Model
     include DataMapper::Resource
     include DataObjectCommon
     include Hipe::AsciiTypesetting::Methods
+    Response = Hipe::Io::GoldenHammer
 
     belongs_to :account, :model => 'Account'
     has 1, :user, :through => :account
@@ -78,7 +79,7 @@ module Hipe::SocialSync::Model
       end
       item.destroy!
       Event.kreate :item_reflection_deleted, :item=>item, :by=>user_obj
-      %{Removed the reflection of the item #{item.one_word}.}
+      Response.new(:data=>{:item => item}, :message => %{Removed the reflection of the item #{item.one_word}.})
     end
   end
 end # module Hipe::SocialSync::Model

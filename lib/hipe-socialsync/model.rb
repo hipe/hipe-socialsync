@@ -358,6 +358,18 @@ module Hipe::SocialSync::Model
       Event.kreate :service_account_deleted, :account=>acct, :by=>user_obj
       %{Removed record of #{svc.name} account for "#{name_credential}".}
     end
+
+    # @param [String] identifier a primary key or a string of the form <service_name>/<name_credential>
+    def self.first_from_identifier_or_throw identifier
+      if /^\d+$/ =~ identifier.to_s
+        first_or_throw(:id => identifier)
+      elsif (md = %r|^([^/]+)/(.+)$|.match(identifier))
+        svc = Service.first_or_throw(:name => md[1])
+        first_or_throw(:service => svc, :name_credential => md[2])
+      else
+        throw :invalid, ValidationErrors["Can't determine Account from #{identifier.inspect}"]
+      end
+    end
   end
 end
 

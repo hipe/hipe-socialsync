@@ -11,18 +11,22 @@
 "chomp":true
 }
 
-~/d > sosy db:auto-migrate -F test
-#! start code
+# destroy and init the database (i-0)
+#! start all code
+  env = $hipe_env || 'test'
+  raise "no: #{env}" unless ['dev','test'].include?(env)
+  @app = Hipe::SocialSync::App.new(['-e',env])
+  x = @app.run(["db:auto-migrate", "-F", env])
   x.valid?.should.equal true
-#! end code
+#! end all code
 
 ~/d > sosy items:add -h
 items:add - add an entry and asociate it w/ an account
 #! start code
   x.valid?.should.equal true
-#! end code 
+#! end code
 
-# add item wrong service name 
+# add item wrong service name
 ~/d > sosy items:add wordpresz doofis 123 me  "i am a blog entry" 'kw1,kw2,kw3' '2008-01-02' 'published' 'my cat' admin@admin
 Can't find service with name "wordpresz".
 
@@ -54,16 +58,20 @@ Added blog entry (ours: #2, theirs: #124).
 #! end code
 
 # delete help should work (i-9)
-~/d > sosy items:delete -h 
+~/d > sosy items:delete -h
 #! start code
   x.valid?.should.equal true
 #! end code
 
 ~/d > sosy items:delete  blah adminz
-Can't find user with email "adminz".
+#! start code
+  x.to_s.should.match %r{item ids "blah" does not match the correct pattern}
+#! end code
 
 ~/d > sosy items:delete  blah admin@admin
-Can't find item with id "blah".
+#! start code
+  x.to_s.should.match %r{item ids "blah" does not match the correct pattern}
+#! end code
 
 ~/d > sosy items:delete 1 admin@admin
 Removed the reflection of the item "my cat".
@@ -81,3 +89,10 @@ Added blog entry (ours: #3, theirs: #789).
 ~/d > sosy items:delete 3 admin@admin
 That item doesn't belong to you.
 
+# temp@user adds blog item 501
+~/d > sosy items:add wordpress meeee 501 auth501 "i am blog entry 501" 'kw1,kw2,kw3' '2008-05-01' 'published' 'blog title 501'  temp@user
+Added blog entry (ours: #4, theirs: #501).
+
+# temp@user adds blog item 502
+~/d > sosy items:add wordpress meeee 502 auth502 "i am blog entry 502" 'kw1,kw2,kw3' '2008-05-02' 'published' 'blog title 502'  temp@user
+Added blog entry (ours: #5, theirs: #502).

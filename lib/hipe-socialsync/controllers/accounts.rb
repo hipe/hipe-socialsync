@@ -22,14 +22,16 @@ module Hipe::SocialSync::Plugins
       out
     end
 
-    cli.does(:list, "show all accounts"){
+    cli.does(:list, "show all accounts of current user"){
       option('-h',&help)
       required(:current_user_email, "the email of the current user")
     }
     def list(current_user_email,opts)
       user_obj = current_user(current_user_email)
       accts = Account.all(:user=>user_obj,:order=>[:id.desc])
+      accts.sort!{|x,y| x.one_word <=> y.one_word}
       out = cli.out.new
+      out.data.accounts = accts
       out.suggested_template = 'tables'
       out.data.tables = [Hipe::Table.make do
         field(:id){|x| x.id}

@@ -1,9 +1,9 @@
-# bacon -n '.*' spec/spec_items-genned.rb
+# bacon spec/spec_items-genned.rb
 require 'hipe-socialsync'
 
 
 # You may not want to edit this file.  It was generated from data in "items.screenshots"
-# by hipe-cli gentest on 2009-12-31 15:06.
+# by hipe-cli gentest on 2010-01-08 22:53.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -15,9 +15,11 @@ require 'hipe-socialsync'
 
 describe "Item tests (generated tests)" do
 
-  it "sosy db:auto-migrate -F test (i-0)" do
-    @app = Hipe::SocialSync::App.new(['-e','test'])
-    x = @app.run(["db:auto-migrate", "-F", "test"])
+  it "# destroy and init the database (i-0) (i-0)" do
+    env = $hipe_env || 'test'
+    raise "no: #{env}" unless ['dev','test'].include?(env)
+    @app = Hipe::SocialSync::App.new(['-e',env])
+    x = @app.run(["db:auto-migrate", "-F", env])
     x.valid?.should.equal true
   end
 
@@ -74,14 +76,12 @@ describe "Item tests (generated tests)" do
 
   it "sosy items:delete  blah adminz (i-10)" do
     x = @app.run(["items:delete", "blah", "adminz"])
-    y = "Can't find user with email \"adminz\"."
-    x.to_s.chomp.should.equal y
+    x.to_s.should.match %r{item ids "blah" does not match the correct pattern}
   end
 
   it "sosy items:delete  blah admin@admin (i-11)" do
     x = @app.run(["items:delete", "blah", "admin@admin"])
-    y = "Can't find item with id \"blah\"."
-    x.to_s.chomp.should.equal y
+    x.to_s.should.match %r{item ids "blah" does not match the correct pattern}
   end
 
   it "sosy items:delete 1 admin@admin (i-12)" do
@@ -111,6 +111,18 @@ describe "Item tests (generated tests)" do
   it "sosy items:delete 3 admin@admin (i-16)" do
     x = @app.run(["items:delete", "3", "admin@admin"])
     y = "That item doesn't belong to you."
+    x.to_s.chomp.should.equal y
+  end
+
+  it "# temp@user adds blog item 501 (i-17)" do
+    x = @app.run(["items:add", "wordpress", "meeee", "501", "auth501", "i am blog entry 501", "kw1,kw2,kw3", "2008-05-01", "published", "blog title 501", "temp@user"])
+    y = "Added blog entry (ours: #4, theirs: #501)."
+    x.to_s.chomp.should.equal y
+  end
+
+  it "# temp@user adds blog item 502 (i-18)" do
+    x = @app.run(["items:add", "wordpress", "meeee", "502", "auth502", "i am blog entry 502", "kw1,kw2,kw3", "2008-05-02", "published", "blog title 502", "temp@user"])
+    y = "Added blog entry (ours: #5, theirs: #502)."
     x.to_s.chomp.should.equal y
   end
 end

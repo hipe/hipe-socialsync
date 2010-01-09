@@ -1,5 +1,6 @@
-# hipe-cli gentest spec/gentest-screenshots/*
+# bacon spec/spec_accounts-genned.rb
 # hipe-cli gentest spec/gentest-screenshots/accounts.screenshots
+# hipe-cli gentest spec/gentest-screenshots/*
 # This is a gentest file for use with hipe-cli gentest.
 {
 "requires":["hipe-socialsync","bacon","hipe-core/test/bacon-extensions"],
@@ -15,7 +16,7 @@
 auto-migrated test db.
 
 ~/d > sosy accounts:list -h
-accounts:list - show all accounts
+accounts:list - show all accounts of current user
 
 Usage: sosy accounts:list [-h] current_user_email
     -h
@@ -46,8 +47,8 @@ Added wordprez account of "imauser2".
 +----------------------------------------+
 |  id |  service name |  name credential |
 +----------------------------------------+
-|   2 |      wordprez |         imauser2 |
 |   1 |      wordprez |          imauser |
+|   2 |      wordprez |         imauser2 |
 +----------------------------------------+
 
 

@@ -1,9 +1,9 @@
-# bacon -n '.*' spec/spec_wp-genned.rb
+# bacon spec/spec_wp-genned.rb
 require 'hipe-socialsync'
 
 
 # You may not want to edit this file.  It was generated from data in "wp.screenshots"
-# by hipe-cli gentest on 2009-12-31 15:06.
+# by hipe-cli gentest on 2010-01-08 22:53.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -19,7 +19,7 @@ describe "Wp tests (generated tests)" do
     @app = Hipe::SocialSync::App.new(['-e', $hipe_env || 'test'])
     x = @app.run(["ping"])
     env = $hipe_env || 'test'
-    md = x.to_s.match  %r{^hello\.  my environment is "(.+)"\.$}i
+    md = x.to_s.match  %r{^hello.*  my environment is "(.+)"\.$}i
     md.should.be.kind_of MatchData
     md[1].should.equal env
     x = @app.run(["db:auto-migrate", "-F", env])

@@ -2,8 +2,8 @@ module Hipe::SocialSync::Plugins
   class Items
     include Hipe::Cli
     include Hipe::SocialSync::Model
-    ItemModel = Hipe::SocialSync::Model::Item
     include Hipe::SocialSync::ControllerCommon
+    include Hipe::SocialSync::ViewCommon
     cli.out.klass = Hipe::SocialSync::GoldenHammer
     cli.description = "blog entries"
     cli.does 'help','overview of item commands'
@@ -43,9 +43,10 @@ module Hipe::SocialSync::Plugins
         out << %{Added blog entry (ours: ##{item.id}, theirs: ##{foreign_id}).}
       else
         validation_errors = catch(:invalid) do
-          item = ItemModel.kreate(acct, foreign_id, author, content, keywords_str, published_at, status, title, user, opts)
+          item = Item.kreate(acct, foreign_id, author, content, keywords_str, published_at, status, title, user, opts)
           out << %{Added blog entry (ours: ##{item.id}, theirs: ##{foreign_id}).}
           out.data.item = item
+          nil
         end
         if validation_errors
           out.errors << validation_errors.to_s
@@ -59,7 +60,7 @@ module Hipe::SocialSync::Plugins
       required('id','id of the item to view')
     end
     def view(id, opts)
-      item = ItemModel.first_or_throw(:id=>id)
+      item = Item.first_or_throw(:id=>id)
 
       out = cli.out.new :suggested_template => :tables
       d = out.data
@@ -184,7 +185,7 @@ module Hipe::SocialSync::Plugins
         elsif (user)
           table.field[:user].hide()
           user.items
-        else; ItemModel.all end
+        else; Item.all end
       items
     end
     def do_aggregate list, command, current_user_identifier, opts
@@ -201,15 +202,80 @@ module Hipe::SocialSync::Plugins
       out
     end
 
-    cli.does(:delete, "remove the reflection of the item") do
+    cli.does(:delete, "remove the reflection of the item(s)") do
       option('-h',&help)
-      required('item_id', "item id to delete")
+      required('item_ids', "comma-separated list of item ids to delete") do |it|
+        it.must_match(/^\d+(?:,\d+)*$/) unless it.kind_of?(Item)
+        it
+      end
       required('current_user_email')
     end
-    def delete id_or_item, current_user_email, opts
+    def delete items, current_user_email, opts
+      user = current_user current_user_email
+      case items
+        when Item: items = [items]
+        when String: items = items.split(',')
+        else argument_error("very unexpected class for items: #{items.inspect}")
+      end
+      out = cli.out.new # (:on_data_collision => :pluralize)
+      items.each do |item_identifier|
+        out.merge! Item.remove(item_identifier, user)
+      end
+      out
+    end
+
+    cli.does(:add_target_account, "add to the list of targeted accounts(s)") do
+      option('-h','--help',&help)
+      required('item_ids') do |x|
+        x.must_match(/^\d+(?:,\d+)*$/)
+      end
+      required 'account', 'account identifer - either a primary key or "<service name>/<name credential>"'
+      required 'current_user_email'
+    end
+
+    def add_target_account item_ids, account_identifier, current_user_email, opts
+      user = current_user current_user_email
+      acct = Account.first_from_identifier_or_throw account_identifier
+      items = Item.all(:id => item_ids.split(','))
+      return cli.out.new("no matching item(s) found for #{item_ids}") unless items.size > 0
       out = cli.out.new
-      user = current_user(current_user_email)
-      out << ItemModel.remove(id_or_item, user)
+      items.each do |item|
+        item.account # @todo
+        existing_list = item.target_accounts.select{|x| x.account = acct }
+        if existing_list.size > 0  # existing
+          argument_error("Account #{acct.one_word} has already been targeted by item #{item.one_word}.")
+        else
+          item.target_accounts.new(:account => acct)
+          item.save
+          Event.kreate :target_account_added, :from_item => item, :to_account => acct, :by => user
+          out.puts("Added target #{acct.one_word} to item #{item.one_word}.")
+        end
+      end
+      out
+    end
+
+    cli.does(:remove_target_accounts, "add to the list of targeted accounts(s)") do
+      option('-h','--help',&help)
+      required('item_ids'){|x| x.must_match(/^(\d+(?:,\d+)*)$/) }
+      required 'current_user_email'
+    end
+    def remove_target_accounts item_ids, current_user_email, opts
+      user = current_user current_user_email
+      items = Item.all(:id => item_ids[0].split(','))
+      return cli.out.new("no matching item(s) found") if items.size == 0
+      out = cli.out.new
+      items.each do |item|
+        size = item.target_accounts.size
+        item.account #@todo
+        if (size == 0)
+          argument_error("Item #{item.one_word} is already cleared of targets.")
+        else
+          rs = item.target_accounts.map{|targeting| targeting.destroy}
+          num_destroyed = rs.select{|x| x==true}.size
+          Event.kreate :target_accounts_removed, :from_item => item, :by => user
+          out.puts("Removed "<<en{np('target',num_destroyed)}.say<<" from item #{item.one_word}.")
+        end
+      end
       out
     end
   end
