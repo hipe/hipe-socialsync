@@ -74,7 +74,7 @@ Added blog entry (ours: #2, theirs: #124).
 #! end code
 
 ~/d > sosy items:delete 1 admin@admin
-Removed the reflection of the item "my cat".
+Removed the reflection of the item "my cat"
 
 ~/d > sosy users:add temp@user admin@admin
 Created user "temp@user". Now there are 2 users.
@@ -96,3 +96,7 @@ Added blog entry (ours: #4, theirs: #501).
 # temp@user adds blog item 502
 ~/d > sosy items:add wordpress meeee 502 auth502 "i am blog entry 502" 'kw1,kw2,kw3' '2008-05-02' 'published' 'blog title 502'  temp@user
 Added blog entry (ours: #5, theirs: #502).
+
+# when deleting multiple note the cool lingual junk
+~/d > sosy items:delete 3,4,5 temp@user
+Removed the reflection of the item "my dog", "blog title 501" and "blog title 502"

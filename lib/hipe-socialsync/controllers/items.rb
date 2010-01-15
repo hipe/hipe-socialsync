@@ -57,23 +57,30 @@ module Hipe::SocialSync::Plugins
 
     cli.does(:view, "show all details for an individual item") do
       option('-h',&help)
+      option('--ah','admin hack')
       required('id','id of the item to view')
+      required('current_user_email')
     end
-    def view(id, opts)
+    def view(id, current_user_email, opts)
       item = Item.first_or_throw(:id=>id)
+      user = current_user current_user_email
+      if item.user != user && ! opts.ah
+        return cli.out.new(:error => "That item doesn't belong to you")
+      end
 
       out = cli.out.new :suggested_template => :tables
-      d = out.data
-      d.tables = []
+      out.data.item = item
+      out.data.tables = OrderedHash.new
 
-      item_table = self.class.table
-      item_table.list = [item]
-      item_table.axis = :horizontal
-      d.tables << item_table
+      table = self.class.table
+      table.list = [item]
+      table.axis = :horizontal
+      table.label = item.one_word
+      out.data.tables[table.name] = table
 
-      events_table = Log.table
-      events_table.list = item.events
-      d.tables << events_table
+      table = Log.table
+      table.list = item.events
+      out.data.tables[table.name] = table
 
       # clones_table = Events.table
       # clones_table.name = 'clones'
@@ -101,7 +108,11 @@ module Hipe::SocialSync::Plugins
         field(:source){|x| x.source ? x.source.account.one_word : '(none)' }
         field(:targets, :label => 'target items'){|x| t=x.targets; t.size == 0 ? '(none)' : t.map{|y| y.account.one_word }}
         field(:target_accounts) do |x|
-          x.target_accounts.size == 0 ? '(none)' : ( x.target_accounts.map{|y| y.account.one_word} * ',' )
+          if (x.target_accounts.size == 0)
+            '(none)'
+          else
+           x.target_accounts.map{|y| y.account ? y.account.one_word : '(account deleted)' } * ','
+          end
         end
       end
     end
@@ -275,6 +286,50 @@ module Hipe::SocialSync::Plugins
           Event.kreate :target_accounts_removed, :from_item => item, :by => user
           out.puts("Removed "<<en{np('target',num_destroyed)}.say<<" from item #{item.one_word}.")
         end
+      end
+      out
+    end
+
+    cli.does(:sync, "sync the list of items to their (first) target account") do
+      option('-h','--help',&help)
+      option('-p','--password_credential ARG')
+      required('item_ids'){|x| x.must_match(/^(\d+(?:,\d+)*)$/) }
+      required 'current_user_email'
+    end
+    def sync item_ids, current_user_email, opts
+      user = current_user current_user_email
+      items = Item.all(:id => item_ids[0].split(','))
+      return cli.out.new("no matching item(s) found") if items.size == 0
+      out = cli.out.new
+      items.each do |item|
+        size = item.target_accounts.size
+        item.account #@todo
+        case size
+        when 0
+          out.errors << "Item #{item.one_word} has no target accounts."
+        when 1
+          svc_name = item.target_accounts[0].account.service.name
+          if (svc_name != "tumblr")
+            out.errors << "syncing to #{svc_name} is not yet supported for #{item.one_word}"
+          end
+        else
+          out.errors << "for now, can't target multiple accounts for #{item.one_word}"
+        end
+      end
+      if ! out.valid? then return out end
+      items.each do |item|
+        request = {
+          'command_name' => 'tumblr:push',
+          'ids' => item.id.to_s,
+          'tumblr_password' => opts.password_credential
+        }
+        sub_out = cli.parent.application.run(request, user && user.email)
+        if ! sub_out.valid?
+          return out
+        else
+          sub_out.data.local_item_id = item.id
+        end
+        out.merge! sub_out
       end
       out
     end

@@ -73,6 +73,11 @@ module Hipe
       # This is for when to_s is called on a GoldenHammer that has a suggested_template of "tables"
       # This is just a default rendering strategy for ascii contexts (command-line.)
       # A web client should render the table(s) itself.
+      def initialize *args
+        @compress_messages = true
+        super
+      end
+
       def render_tables
         lines = []
         data.tables.each do |table|
@@ -163,6 +168,7 @@ module Hipe
 
       cli.does('ping','the minimal action') do
         option('--db','try connecting')
+        option('--ascii', 'return ascii string used for testing formatting.')
       end
       def ping(opts)
         out = cli.out.new
@@ -175,6 +181,14 @@ module Hipe
         if (opts.db)
           db_connect
           out << %{  My database file is "#{File.basename(db_path)}".}
+        end
+        if (opts.ascii)
+          out << "\n"
+          out << "here is some ascii for you to test with:\n"+
+                  "[0]3456789 [1]4567     this line is 80 characters long       [6]456789 [7]456789\n"+
+                  "[0]3456789 [1]4567     this line is 100 characters long      [6]456789 [7]456789 [8]456789 [9]456789\n"+
+                  "                       this line is 100 characters long  with leading whitespace [8]456789 [9]456789\n"+
+                  "end of ascii."
         end
         out
       end

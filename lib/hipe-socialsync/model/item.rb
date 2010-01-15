@@ -43,7 +43,14 @@ module Hipe::SocialSync::Model
         )
       }
 
-    def one_word; truncate(title,15).inspect end
+    def one_word;
+      title = truncate(title,15)
+      if (""!=title)
+        title.inspect
+      else
+        "Item \##{id}"
+      end
+    end
 
     def self.kreate(account_obj, foreign_id, author_str, content_str,
          keywords_str, published_at, status, title, current_user_obj, opts)
@@ -53,7 +60,17 @@ module Hipe::SocialSync::Model
       kind_of_or_throw :account, account_obj, Account
       kind_of_or_throw :keywords, keywords_str, String
       md5 = MD5.new(content_str).to_s
-      source_obj = opts.source ? Item.first_or_throw(:id => opts.source) : nil
+      if (opts.source)
+        if opts.source.kind_of?(Item)
+          source_obj = opts.source
+        elsif(opts.source.kind_of?(Fixnum) || opts.source.kind_of?(String))
+          source_obj = Item.first_or_throw(:id => opts.source)
+        else
+          throw :invalid, ValidationErrors["unrecognized item source item: #{opts.source.inspect}"]
+        end
+      else
+        source_obj = nil
+      end
       obj = self.create(
         :account        => account_obj,
         :foreign_id     => foreign_id,
@@ -79,7 +96,7 @@ module Hipe::SocialSync::Model
       end
       item.destroy!
       Event.kreate :item_reflection_deleted, :item=>item, :by=>user_obj
-      Response.new(:data=>{:item => item}, :message => %{Removed the reflection of the item #{item.one_word}.})
+      Response.new(:data=>{:item => item}, :message => %{Removed the reflection of #{item.one_word}})
     end
   end
 end # module Hipe::SocialSync::Model

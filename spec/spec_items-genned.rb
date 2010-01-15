@@ -3,7 +3,7 @@ require 'hipe-socialsync'
 
 
 # You may not want to edit this file.  It was generated from data in "items.screenshots"
-# by hipe-cli gentest on 2010-01-08 22:53.
+# by hipe-cli gentest on 2010-01-08 23:11.
 # If tests are failing here, it means that either 1) the gentest generated
 # code that makes tests that fail (it's not supposed to do this), 2) That there is something incorrect in
 # your "screenshot" data, or 3) that your app or hipe-cli has changed since the screenshots were taken
@@ -28,7 +28,7 @@ describe "Item tests (generated tests)" do
     x.valid?.should.equal true
   end
 
-  it "# add item wrong service name  (i-2)" do
+  it "# add item wrong service name (i-2)" do
     x = @app.run(["items:add", "wordpresz", "doofis", "123", "me", "i am a blog entry", "kw1,kw2,kw3", "2008-01-02", "published", "my cat", "admin@admin"])
     y = "Can't find service with name \"wordpresz\"."
     x.to_s.chomp.should.equal y
@@ -86,7 +86,7 @@ describe "Item tests (generated tests)" do
 
   it "sosy items:delete 1 admin@admin (i-12)" do
     x = @app.run(["items:delete", "1", "admin@admin"])
-    y = "Removed the reflection of the item \"my cat\"."
+    y = "Removed the reflection of the item \"my cat\""
     x.to_s.chomp.should.equal y
   end
 
@@ -123,6 +123,12 @@ describe "Item tests (generated tests)" do
   it "# temp@user adds blog item 502 (i-18)" do
     x = @app.run(["items:add", "wordpress", "meeee", "502", "auth502", "i am blog entry 502", "kw1,kw2,kw3", "2008-05-02", "published", "blog title 502", "temp@user"])
     y = "Added blog entry (ours: #5, theirs: #502)."
+    x.to_s.chomp.should.equal y
+  end
+
+  it "# when deleting multiple note the cool lingual junk (i-19)" do
+    x = @app.run(["items:delete", "3,4,5", "temp@user"])
+    y = "Removed the reflection of the item \"my dog\", \"blog title 501\" and \"blog title 502\""
     x.to_s.chomp.should.equal y
   end
 end

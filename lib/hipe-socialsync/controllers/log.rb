@@ -26,7 +26,7 @@ module Hipe::SocialSync::Plugins
         field(:type){|e| formatter.humanize_lite(e.type) }
         field(:details,:align=>:left) do |e|
           #e.as_relative_sentence(nil,:omit => )
-          e.details.map{|x| %{#{formatter.humanize_lite(x.type)} #{x.target.one_word}} }*' '
+          e.details.map{|x| %{#{formatter.humanize_lite(x.type)} #{x.target ? x.target.one_word : '(no target)'}} }*' '
         end
       end
     end

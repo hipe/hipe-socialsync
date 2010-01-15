@@ -50,6 +50,7 @@ module Hipe::SocialSync::Plugins
         end
       end
       out = cli.out.new
+      out.data.responses_for_item_id = {}
       if items_w_mult_accts.size > 0
         out.errors << ("For now we can't handle pushing items that point to more than one tumblr account " <<
         %{(item id(s): (#{items_w_mult_accts.map{|x| x.id}.sort.join(',')}))} )
@@ -85,10 +86,49 @@ module Hipe::SocialSync::Plugins
         transport.item_date = item.published_at.to_s
         transport.item_tags = item.keywords
         sub_result = transport.push
+        sub_result.data.original_item = item
+        sub_result.data.original_account = acct
+        after_push(sub_result,user)
         result.merge! sub_result
         return result unless result.valid?
       end
       result
+    end
+    # @return nil   (alter original response object)
+    def after_push(sub_out,user)
+      if (!sub_out.valid?)
+        sub_out.errors << "Won't try to create a tumblr blog entry reflection after a failed push."
+        return sub_out
+      end
+      if (!sub_out.data.tumblr_response)
+        sub_out.errors << "Couldn't find data.tumblr_response";
+        return sub_out
+      end
+      tumblr_item_id = sub_out.data.tumblr_response
+      if (/^\d+$/ =~ tumblr_item_id)
+        sub_out.data.tumblr_item_id = tumblr_item_id
+      else
+        sub_out.errors << "Tumblr response did not appear to be an item id: #{tumblr_id.inspect}"
+        return sub_out
+      end
+
+      orig_item = sub_out.data.original_item
+      orig_acct = sub_out.data.original_account
+
+      sub_opts = Hipe::OpenStructExtended.new
+      sub_opts.source = orig_item
+      validation_errors = catch(:invalid) do
+        new_item = Item.kreate(orig_acct, tumblr_item_id, '(author)',
+          '(content)', '(keywords)', '1970-01-01',
+          'status: empty reflection', '(title)', user, sub_opts)
+        sub_out << %{Added empty reflection of tumblr blog (ours: ##{new_item.id}, theirs: ##{tumblr_item_id}).}
+        sub_out.data.new_local_item = new_item
+        nil
+      end
+      if validation_errors
+        sub_out.errors << validation_errors.to_s
+      end
+      nil
     end
   end
 end

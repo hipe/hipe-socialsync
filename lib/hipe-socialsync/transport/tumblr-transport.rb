@@ -353,7 +353,8 @@ module Hipe::SocialSync
         )
       end
       if result.valid?
-        result.puts "@response is set."
+        result.puts "received data.tumblr_response. (and @response is set.)"
+        result.data.tumblr_response = @response.dup
         if write_recordings?
           sub_result = record_this_post_response
           result.merge! sub_result
